@@ -1,0 +1,87 @@
+{% extends "customer/base.html" %}
+{% block content %}
+
+<div class="container mt-5">
+  <div class="card shadow p-4 mx-auto" style="max-width: 750px;">
+    <h3 class="text-success text-center mb-3"><i class="bi bi-check-circle-fill"></i> Payment Successful!</h3>
+    <p class="text-center text-muted mb-4">Thank you for your purchase. Here is your order invoice:</p>
+
+    <!-- Invoice -->
+    <h5 class="mb-3">Invoice Details</h5>
+    <ul class="list-group mb-3">
+      {% for item in invoice.products %}
+        <li class="list-group-item d-flex justify-content-between list-hover">
+          <div>{{ item.name }} (x{{ item.quantity }})</div>
+          <span>₹{{ item.total }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+
+    <div class="text-center mt-3">
+      <a href="{% url 'download_invoice_pdf' %}" class="btn btn-outline-danger">
+        <i class="bi bi-file-earmark-pdf-fill"></i> Download Invoice as PDF
+      </a>
+    </div>
+
+    <div class="d-flex justify-content-between mb-2">
+      <strong>Total:</strong> <span>₹{{ invoice.total }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-2 text-danger">
+      <strong>Discount:</strong> <span>₹{{ invoice.discount }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-3">
+      <strong>Grand Total:</strong> <span class="text-success fw-bold">₹{{ invoice.grand_total }}</span>
+    </div>
+
+    <div class="mb-3">
+      <strong>Order ID:</strong> {{ invoice.order_id }}
+    </div>
+
+    <!-- ✅ Address Block -->
+    <h5 class="mb-3 mt-4">Shipping Address</h5>
+    <ul class="list-group mb-3">
+      <li class="list-group-item"><strong>Name:</strong> {{ address.full_name }}</li>
+      <li class="list-group-item"><strong>Address:</strong> {{ address.address }}</li>
+      <li class="list-group-item"><strong>City:</strong> {{ address.city }}</li>
+      <li class="list-group-item"><strong>Pincode:</strong> {{ address.pincode }}</li>
+      <li class="list-group-item"><strong>Phone:</strong> {{ address.phone }}</li>
+    </ul>
+
+    <!-- Buttons: Continue Shopping & Track Order -->
+    <div class="d-flex justify-content-center gap-3 mt-4">
+      <a href="{% url 'customer_home' %}" class="btn btn-primary btn-lg px-4 btn-hover-underline">
+        <i class="bi bi-house-fill"></i> Continue Shopping
+      </a>
+      <a href="{% url 'track_order' order_id=invoice.order_id %}" class="btn btn-outline-primary btn-lg px-4 btn-hover-underline">
+        <i class="bi bi-truck"></i> Track Order
+      </a>
+    </div>
+  </div>
+</div>
+
+<style>
+  .list-hover:hover {
+    background-color: #f1f1f1;
+    transition: all 0.3s;
+  }
+  /* Hover underline effect with blue line similar to Amazon */
+  .btn-hover-underline {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-hover-underline::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    width: 0;
+    background-color: #0d6efd; /* Bootstrap primary blue */
+    transition: width 0.3s ease;
+  }
+  .btn-hover-underline:hover::after {
+    width: 100%;
+  }
+</style>
+
+{% endblock %}

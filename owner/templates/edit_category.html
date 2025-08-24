@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container">
+  <h2 class="mb-4">Edit Category</h2>
+
+  <form method="post" class="d-flex">
+    {% csrf_token %}
+    <input type="text" name="category" value="{{ old_name }}" class="form-control me-2" required>
+    <button type="submit" class="btn btn-success">Update</button>
+  </form>
+</div>
+
+{% endblock %}

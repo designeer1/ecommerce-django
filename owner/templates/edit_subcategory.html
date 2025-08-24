@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container">
+  <h2 class="mb-4">Edit Subcategory</h2>
+
+  <form method="post" class="d-flex gap-2">
+    {% csrf_token %}
+    <select name="category" class="form-select" required>
+      {% for cat in categories %}
+        <option value="{{ cat }}" {% if cat == current_category %}selected{% endif %}>{{ cat }}</option>
+      {% endfor %}
+    </select>
+    <input type="text" name="subcategory" value="{{ old_subcat_name }}" class="form-control" required>
+    <button type="submit" class="btn btn-success">Update</button>
+    <a href="{% url 'manage_subcategories' %}" class="btn btn-secondary">Back</a>
+  </form>
+</div>
+
+{% endblock %}

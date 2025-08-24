@@ -1,0 +1,26 @@
+{% extends "customer/base.html" %}
+{% block content %}
+
+<h2 class="mb-4 text-center">Products in {{ subcategory.name }}</h2>
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+  {% for product in products %}
+    <div class="col">
+      <div class="card h-100 shadow-sm border-2 product-card">
+        <div class="card-img-top-container">
+          <img src="{{ product.image_path }}" class="card-img-top" alt="{{ product.name }}">
+        </div>
+        <div class="card-body text-center">
+          <h5 class="card-title text-truncate">{{ product.name }}</h5>
+          <p class="card-text text-primary fw-bold">₹ {{ product.price }}</p>
+          <a href="{% url 'add_to_cart' product.name %}" class="btn btn-success btn-sm">
+            <i class="bi bi-cart-plus"></i> Add to Cart
+          </a>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <p class="text-center mt-4">No products in this subcategory.</p>
+  {% endfor %}
+</div>
+
+{% endblock %}

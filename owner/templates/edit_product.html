@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container">
+  <h2 class="mb-4">Edit Product</h2>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label>Product Name</label>
+      <input type="text" name="name" value="{{ product.name }}" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label>Price (₹)</label>
+      <input type="number" name="price" value="{{ product.price }}" step="0.01" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label>Image (Optional)</label>
+      <input type="file" name="image" accept="image/*" class="form-control">
+      <img src="{{ product.image_path }}" alt="{{ product.name }}" style="width: 100px; margin-top: 10px;">
+    </div>
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-success">Update</button>
+      <a href="{% url 'manage_products' %}" class="btn btn-secondary">Back</a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

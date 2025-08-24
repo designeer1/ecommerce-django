@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="text-center">
+  <h1 class="mb-4">Welcome to TaskPro</h1>
+  <p class="lead">Your simple e-cart / task management starter.</p>
+  
+  {% if request.session.username %}
+    <a href="{% url 'manage_category' %}" class="btn btn-warning m-2">Manage Categories</a>
+    <a href="{% url 'manage_subcategory' %}" class="btn btn-info m-2">Manage Subcategories</a>
+  {% else %}
+    <p>Please <a href="{% url 'login' %}" class="btn btn-success">Login</a> or <a href="{% url 'register' %}" class="btn btn-primary">Register</a> to manage categories and subcategories.</p>
+  {% endif %}
+</div>
+{% endblock %}

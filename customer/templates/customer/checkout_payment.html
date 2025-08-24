@@ -1,0 +1,73 @@
+{% extends "customer/base.html" %}
+{% block content %}
+
+<div class="container mt-5">
+  <div class="card shadow p-4 mx-auto" style="max-width: 750px;">
+    <h3 class="mb-4 text-center text-success">
+      <i class="bi bi-credit-card-2-front-fill"></i> Payment Summary
+    </h3>
+
+    <!-- Order Summary -->
+    <ul class="list-group mb-3">
+      {% for item in cart_products %}
+        <li class="list-group-item d-flex justify-content-between align-items-center list-hover">
+          <div>
+            <strong>{{ item.name }}</strong> (x{{ item.quantity }})
+          </div>
+          <span>₹{{ item.total }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+
+    <div class="d-flex justify-content-between mb-2">
+      <strong>Total:</strong>
+      <span>₹{{ total }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-2 text-danger">
+      <strong>Discount:</strong>
+      <span>₹{{ discount }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-4">
+      <strong>Grand Total:</strong>
+      <span class="fw-bold text-success">₹{{ grand_total }}</span>
+    </div>
+
+    <!-- ✅ Coupon form starts here -->
+   <!-- Apply Coupon Button Form -->
+<form method="post" class="mb-4">
+  {% csrf_token %}
+  <input type="hidden" name="coupon_code" value="DISCOUNT20">
+  <button type="submit" class="btn btn-outline-success w-100">
+    <i class="bi bi-ticket-perforated-fill"></i> Apply coupon
+  </button>
+
+  {% if coupon_applied %}
+    <small class="text-success d-block mt-2 text-center">Coupon applied successfully!</small>
+  {% elif coupon_code %}
+    <small class="text-danger d-block mt-2 text-center">Invalid coupon code.</small>
+  {% endif %}
+</form>
+
+
+    <!-- ✅ Razorpay payment button -->
+    <form action="{% url 'payment_success' %}" method="POST">
+      {% csrf_token %}
+      <script
+        src="https://checkout.razorpay.com/v1/checkout.js"
+        data-key="{{ razorpay_key }}"
+        data-amount="{{ amount }}"
+        data-currency="INR"
+        data-order_id="{{ razorpay_order_id }}"
+        data-buttontext="Pay Now"
+        data-name="Your Store"
+        data-description="Online Payment"
+        data-image="/static/logo.png"
+        data-theme.color="#28a745"
+        data-callback_url="{% url 'payment_success' %}">
+      </script>
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-5">
+  <h3 class="mb-4">Search Results for "{{ query }}"</h3>
+
+  <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+    {% for product in results %}
+      <div class="col">
+        <div class="card h-100 shadow-sm border-2 product-card">
+          <div class="card-img-top-container">
+            <img src="{{ product.image_path }}" class="card-img-top" alt="{{ product.name }}">
+          </div>
+          <div class="card-body text-center">
+            <h5 class="card-title text-truncate">{{ product.name }}</h5>
+            <p class="card-text text-primary fw-bold">₹ {{ product.price }}</p>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <p class="text-center">No results found.</p>
+    {% endfor %}
+  </div>
+</div>
+
+<style>
+.product-card {
+  border-radius: 15px;
+  border: 2px solid #000;
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+}
+.card-img-top-container {
+  height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+.card-img-top-container img {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; }
+        h2 { color: #28a745; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+        }
+        .totals {
+            margin-top: 20px;
+        }
+        .totals td {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<h2>🧾 Order Invoice</h2>
+
+<h4>Shipping Address</h4>
+<p>
+  <strong>Name:</strong> {{ address.full_name }}<br>
+  <strong>Address:</strong> {{ address.address }}<br>
+  <strong>City:</strong> {{ address.city }}<br>
+  <strong>Pincode:</strong> {{ address.pincode }}<br>
+  <strong>Phone:</strong> {{ address.phone }}
+</p>
+
+<h4>Order Summary</h4>
+<table>
+  <tr>
+    <th>Product</th>
+    <th>Qty</th>
+    <th>Price</th>
+    <th>Total</th>
+  </tr>
+  {% for item in invoice.products %}
+  <tr>
+    <td>{{ item.name }}</td>
+    <td>{{ item.quantity }}</td>
+    <td>₹{{ item.price }}</td>
+    <td>₹{{ item.total }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<table class="totals">
+  <tr>
+    <td>Total:</td>
+    <td>₹{{ invoice.total }}</td>
+  </tr>
+  <tr>
+    <td>Discount:</td>
+    <td>₹{{ invoice.discount }}</td>
+  </tr>
+  <tr>
+    <td>Grand Total:</td>
+    <td>₹{{ invoice.grand_total }}</td>
+  </tr>
+  <tr>
+    <td>Order ID:</td>
+    <td>{{ invoice.order_id }}</td>
+  </tr>
+</table>
+
+</body>
+</html>
