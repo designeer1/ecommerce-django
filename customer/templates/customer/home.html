@@ -1,7 +1,46 @@
 {% extends "customer/base.html" %}
+{% load static %}
 {% block content %}
 
-<h2 class="mb-4 text-center">Available Products</h2>
+<!-- Scrolling Banner -->
+<div id="bannerCarousel" class="carousel slide mb-5" data-bs-ride="carousel">
+  <div class="carousel-inner">
+
+    <!-- First Banner -->
+    <div class="carousel-item active">
+      <img src="{% static 'images/b1.jpg' %}" 
+           class="d-block w-100 banner-img" alt="Banner 1">
+    </div>
+
+    <!-- Second Banner -->
+    <div class="carousel-item">
+      <img src="{% static 'images/b2.jpg' %}" 
+           class="d-block w-100 banner-img" alt="Banner 2">
+    </div>
+
+    <!-- Third Banner -->
+    <div class="carousel-item">
+      <img src="{% static 'images/b4.jpg' %}" 
+           class="d-block w-100 banner-img" alt="Banner 3">
+    </div>
+
+  </div>
+
+  <!-- Controls -->
+  <button class="carousel-control-prev" type="button" data-bs-target="#bannerCarousel" data-bs-slide="prev">
+    <span class="carousel-control-prev-icon"></span>
+  </button>
+  <button class="carousel-control-next" type="button" data-bs-target="#bannerCarousel" data-bs-slide="next">
+    <span class="carousel-control-next-icon"></span>
+  </button>
+
+  <!-- Indicators -->
+  <div class="carousel-indicators">
+    <button type="button" data-bs-target="#bannerCarousel" data-bs-slide-to="0" class="active"></button>
+    <button type="button" data-bs-target="#bannerCarousel" data-bs-slide-to="1"></button>
+    <button type="button" data-bs-target="#bannerCarousel" data-bs-slide-to="2"></button>
+  </div>
+</div>
 
 <!-- Products Grid -->
 <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
@@ -27,5 +66,48 @@
     <p class="text-center mt-4">No products available yet.</p>
   {% endfor %}
 </div>
+
+<!-- Toast Notification -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050;">
+  <div id="cartToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="3000">
+    <div class="toast-header">
+      <strong class="me-auto"><i class="bi bi-cart-plus"></i> Cart Updated</strong>
+      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body">
+      Product added to cart successfully!
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript to Trigger Toast -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const newProduct = "{{ new_product_added|escapejs }}";
+    const toastElement = document.getElementById('cartToast');
+    const toast = new bootstrap.Toast(toastElement);
+
+    if (newProduct && newProduct !== "None") {
+      toastElement.querySelector('.toast-body').textContent = `${newProduct} added to cart successfully!`;
+      toast.show();
+    }
+  });
+</script>
+
+<!-- Custom CSS -->
+<style>
+.banner-img {
+  height: 60px;              /* Fixed height (like navbar) */
+  width: auto;               /* Keep original image width */
+  object-fit: contain;       /* Don't crop image */
+  display: block;
+  margin: 0 auto;            /* Center image horizontally */
+  background-color: #000;    /* Optional: background fill */
+}
+
+.carousel-item {
+  text-align: center;   /* Center the image if it's not full-width */
+}
+</style>
 
 {% endblock %}

@@ -4,6 +4,7 @@ import uuid
 from pathlib import Path
 from django.conf import settings
 from django.shortcuts import render, redirect
+from .forms import CategoryForm  # Import the form
 
 # -------------------- Data persistence --------------------
 DATA_FILE = Path(__file__).parent / 'data.json'
@@ -21,7 +22,6 @@ def save_data(data):
 data = load_data()
 users = data['users']
 user_data = data['user_data']
-
 
 # -------------------- Authentication --------------------
 def login_view(request):
@@ -69,7 +69,6 @@ def logout(request):
     request.session.flush()
     return redirect("dashboard")
 
-
 #------------search_view------------------------------
 def search_view(request):
     email = request.session.get("email")
@@ -108,9 +107,6 @@ def search_view(request):
 
     return render(request, "search_results.html", {"query": query, "results": results})
 
-
-
-
 # -------------------- Category --------------------
 def manage_category(request):
     email = request.session.get("email")
@@ -120,15 +116,26 @@ def manage_category(request):
     categories = user_data[email]["categories"]
 
     if request.method == "POST":
-        new_cat = request.POST.get("category")
-        if new_cat and new_cat not in categories:
-            categories.append(new_cat)
-            user_data[email]["subcategories"][new_cat] = []
-            save_data(data)
-        return redirect("manage_category")
+        form = CategoryForm(request.POST)
+        if form.is_valid():
+            new_cat = form.cleaned_data["category"]
+            if "old_name" in request.POST:  # Update existing category
+                old_name = request.POST.get("old_name")
+                if old_name in categories and new_cat != old_name:
+                    index = categories.index(old_name)
+                    categories[index] = new_cat
+                    subcategories = user_data[email]["subcategories"]
+                    subcategories[new_cat] = subcategories.pop(old_name)
+                    save_data(data)
+            elif new_cat not in categories:  # Add new category
+                categories.append(new_cat)
+                user_data[email]["subcategories"][new_cat] = []
+                save_data(data)
+            return redirect("manage_category")
+    else:
+        form = CategoryForm()
 
-    return render(request, "manage_category.html", {"categories": categories})
-
+    return render(request, "manage_category.html", {"categories": categories, "form": form})
 
 def delete_category(request, cat_name):
     email = request.session.get("email")
@@ -145,7 +152,6 @@ def delete_category(request, cat_name):
 
     return redirect("manage_category")
 
-
 def edit_category(request, old_name):
     email = request.session.get("email")
     if not email:
@@ -155,16 +161,19 @@ def edit_category(request, old_name):
     subcategories = user_data[email]["subcategories"]
 
     if request.method == "POST":
-        new_name = request.POST.get("category")
-        if old_name in categories and new_name:
-            index = categories.index(old_name)
-            categories[index] = new_name
-            subcategories[new_name] = subcategories.pop(old_name)
-            save_data(data)
-        return redirect("manage_category")
+        form = CategoryForm(request.POST)
+        if form.is_valid():
+            new_name = form.cleaned_data["category"]
+            if old_name in categories and new_name:
+                index = categories.index(old_name)
+                categories[index] = new_name
+                subcategories[new_name] = subcategories.pop(old_name)
+                save_data(data)
+            return redirect("manage_category")
+    else:
+        form = CategoryForm(initial={"category": old_name})
 
-    return render(request, "edit_category.html", {"old_name": old_name})
-
+    return render(request, "manage_category.html", {"categories": categories, "form": form, "old_name": old_name})
 
 # -------------------- Subcategory --------------------
 def manage_subcategory(request):
@@ -235,7 +244,6 @@ def delete_subcategory(request, category, name):
     save_data(data)
     return redirect("manage_subcategory")
 
-
 def edit_subcategory(request, cat_name, old_subcat_name):
     email = request.session.get("email")
     if not email:
@@ -249,10 +257,9 @@ def edit_subcategory(request, cat_name, old_subcat_name):
         new_category = request.POST.get("category")
         if (cat_name in subcategories and old_subcat_name in subcategories[cat_name]
             and new_subcat_name and new_category in subcategories):
-
-            subcategories[cat_name].remove(old_subcat_name)
-            if new_subcat_name not in subcategories[new_category]:
-                subcategories[new_category].append(new_subcat_name)
+            subcategories[cat_name] = [sc for sc in subcategories[cat_name] if sc["name"] != old_subcat_name]
+            if new_subcat_name not in [sc["name"] for sc in subcategories[new_category]]:
+                subcategories[new_category].append({"name": new_subcat_name, "subcategory": new_subcat_name, "price": 0, "image": "/media/products/default.png"})
             save_data(data)
         return redirect("manage_subcategory")
 
@@ -262,7 +269,6 @@ def edit_subcategory(request, cat_name, old_subcat_name):
         "old_subcat_name": old_subcat_name
     })
 
-
 # -------------------- Products --------------------
 def manage_products(request):
     email = request.session.get("email")
@@ -271,7 +277,6 @@ def manage_products(request):
 
     products = user_data[email]["products"]
     return render(request, "products.html", {"products": products})
-
 
 def delete_product(request, product_name):
     email = request.session.get("email")
@@ -289,7 +294,6 @@ def delete_product(request, product_name):
             save_data(data)
             break
     return redirect("manage_products")
-
 
 def edit_product(request, old_name):
     email = request.session.get("email")
@@ -332,7 +336,6 @@ def edit_product(request, old_name):
         return redirect("manage_products")
 
     return render(request, "edit_product.html", {"product": product})
-
 
 # customer/views.py
 def get_all_categories_and_subcategories():

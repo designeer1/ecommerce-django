@@ -30,7 +30,7 @@
         <td>{{ forloop.counter }}</td>
         <td>{{ cat }}</td>
         <td class="text-end">
-          <a href="{% url 'edit_category' cat %}" class="btn btn-sm btn-warning">Edit</a>
+          <a href="{% url 'edit_category' cat %}" class="btn btn-sm btn-warning">add category</a>
           <a href="{% url 'delete_category' cat %}" class="btn btn-sm btn-danger"
              onclick="return confirm('Delete {{ cat }}?');">Delete</a>
         </td>

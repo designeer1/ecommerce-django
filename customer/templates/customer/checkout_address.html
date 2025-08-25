@@ -3,43 +3,240 @@
 
 <h2 class="mb-4 text-center"><i class="bi bi-geo-alt"></i> Shipping Address</h2>
 
-<form method="post" class="card p-4 shadow-sm mx-auto" style="max-width:600px;">
-  {% csrf_token %}
-  
-  <div class="mb-3">
-    <label class="form-label">Full Name</label>
-    <input type="text" name="full_name" class="form-control" required>
-  </div>
-
-  <div class="mb-3">
-    <label class="form-label">Address</label>
-    <textarea name="address" class="form-control" rows="3" required></textarea>
-  </div>
-
-  <div class="row">
-    <div class="col-md-6 mb-3">
-      <label class="form-label">City</label>
-      <input type="text" name="city" class="form-control" required>
+<!-- Container for Address Cards -->
+<div class="container">
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 mb-4" id="addressCardsContainer">
+    <!-- Previous Addresses (from session or mock data) -->
+    {% for addr in previous_addresses %}
+    <div class="col">
+      <div class="card address-card shadow-sm text-center p-2" style="height: 200px; position: relative;" data-index="{{ forloop.counter0 }}">
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="selected_address" value="{{ forloop.counter0 }}" id="address{{ forloop.counter0 }}" {% if forloop.first and not selected_address %}checked{% endif %}>
+          <label class="form-check-label" for="address{{ forloop.counter0 }}">
+            <i class="bi bi-house-door-fill mb-1"></i> <!-- Placeholder logo/icon -->
+            <h6 class="card-title mb-1">Address {{ forloop.counter }}</h6>
+            <p class="card-text text-muted small text-truncate">
+              {{ addr.full_name }}<br>{{ addr.address|truncatechars:20 }}<br>{{ addr.city }}, {{ addr.pincode }}<br>Phone: {{ addr.phone }}
+            </p>
+          </label>
+        </div>
+        <button class="btn btn-danger btn-sm delete-btn" style="position: absolute; top: 5px; right: 5px;" onclick="deleteAddress(this)">Delete</button>
+      </div>
     </div>
-    <div class="col-md-6 mb-3">
-      <label class="form-label">Pincode</label>
-      <input type="text" name="pincode" class="form-control" required>
+    {% endfor %}
+    <!-- Always Available Add New Address Card -->
+    <div class="col">
+      <div class="card address-card shadow-sm text-center p-2" style="height: 200px;" onclick="showNewAddressForm()">
+        <i class="bi bi-plus-circle-fill mb-1"></i> <!-- New address icon -->
+        <h6 class="card-title mb-1">Add New Address</h6>
+      </div>
     </div>
   </div>
 
-  <div class="mb-3">
-    <label class="form-label">Phone Number</label>
-    <input type="text" name="phone" class="form-control" required>
+  <!-- New Address Form (Initially Hidden) -->
+  <div id="newAddressForm" class="card p-3 shadow-sm mx-auto" style="max-width: 600px; display: none;">
+    <form id="newAddressFormData">
+      {% csrf_token %}
+      
+      <div class="mb-3">
+        <label class="form-label">Full Name</label>
+        <input type="text" name="full_name" class="form-control" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Address</label>
+        <textarea name="address" class="form-control" rows="2" required></textarea>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label">City</label>
+          <input type="text" name="city" class="form-control" required>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Pincode</label>
+          <input type="text" name="pincode" class="form-control" required>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Phone Number</label>
+        <input type="text" name="phone" class="form-control" required>
+      </div>
+
+      <div class="text-end">
+        <button type="button" class="btn btn-primary" onclick="saveNewAddress()">Save</button>
+      </div>
+    </form>
   </div>
 
-  <div class="d-flex justify-content-between mt-4">
-    <a href="{% url 'cart_table' %}" class="btn btn-outline-secondary">
-      <i class="bi bi-arrow-left"></i> Back
-    </a>
-    <button type="submit" class="btn btn-success">
+  <!-- Proceed to Payment Button (Outside Form) -->
+  <div class="text-end mt-3">
+    <button id="proceedPaymentBtn" class="btn btn-success" onclick="proceedToPayment()" disabled>
       Proceed to Payment <i class="bi bi-arrow-right"></i>
     </button>
   </div>
-</form>
+</div>
+
+<!-- JavaScript for Address Management, Form Handling, and Delete Functionality -->
+<script>
+  function showNewAddressForm() {
+    document.getElementById('newAddressForm').style.display = 'block';
+    document.querySelectorAll('.form-check-input').forEach(radio => radio.checked = false);
+    document.getElementById('proceedPaymentBtn').disabled = true;
+  }
+
+  function saveNewAddress() {
+    const form = document.getElementById('newAddressFormData');
+    const formData = new FormData(form);
+    const newAddress = {
+      full_name: formData.get('full_name'),
+      address: formData.get('address'),
+      city: formData.get('city'),
+      pincode: formData.get('pincode'),
+      phone: formData.get('phone')
+    };
+
+    fetch('', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('newAddressForm').style.display = 'none';
+        location.reload(); // Reload to reflect new address card
+      } else {
+        alert('Error saving address');
+      }
+    })
+    .catch(error => console.error('Error:', error));
+  }
+
+  function deleteAddress(button) {
+    const card = button.closest('.card');
+    const index = card.getAttribute('data-index');
+    if (confirm('Are you sure you want to delete this address?')) {
+      fetch('', {
+        method: 'POST',
+        body: new URLSearchParams({ 'delete_address_index': index }),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Remove the card from the DOM
+          card.parentElement.remove();
+          // Update radio selection and proceed button
+          const radios = document.querySelectorAll('input[name="selected_address"]');
+          if (radios.length === 0) {
+            document.getElementById('proceedPaymentBtn').disabled = true;
+          } else if (document.querySelector('input[name="selected_address"]:checked') === null) {
+            radios[0].checked = true;
+            document.getElementById('proceedPaymentBtn').disabled = false;
+          }
+          // Clear current address if deleted was selected
+          const selectedRadio = document.querySelector('input[name="selected_address"]:checked');
+          if (!selectedRadio && {{ previous_addresses|length }} > 0) {
+            fetch('', {
+              method: 'POST',
+              body: new URLSearchParams({ 'selected_address_index': '0' }),
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+              }
+            });
+          }
+        } else {
+          alert('Error deleting address');
+        }
+      })
+      .catch(error => console.error('Error:', error));
+    }
+  }
+
+  function proceedToPayment() {
+    const selectedRadio = document.querySelector('input[name="selected_address"]:checked');
+    if (selectedRadio) {
+      const index = selectedRadio.value;
+      const addressData = {{ previous_addresses|safe }};
+      if (addressData && addressData[index]) {
+        fetch('', {
+          method: 'POST',
+          body: new URLSearchParams({ 'selected_address_index': index }),
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            window.location.href = "{% url 'checkout_payment' %}";
+          }
+        });
+      }
+    } else {
+      alert('Please select an address to proceed.');
+    }
+  }
+
+  // Enable/disable Proceed button based on radio selection
+  document.querySelectorAll('input[name="selected_address"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      document.getElementById('proceedPaymentBtn').disabled = !this.checked;
+    });
+  });
+
+  // Auto-select first address if available on load
+  document.addEventListener('DOMContentLoaded', function() {
+    const radios = document.querySelectorAll('input[name="selected_address"]');
+    if (radios.length > 0 && !document.querySelector('input[name="selected_address"]:checked')) {
+      radios[0].checked = true;
+      document.getElementById('proceedPaymentBtn').disabled = false;
+    }
+  });
+</script>
+
+<!-- Custom CSS for Glowing Effect and Smaller Cards -->
+<style>
+  .address-card {
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    height: 200px;
+    overflow: hidden;
+    position: relative;
+  }
+  .address-card:hover {
+    border-color: #007bff;
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.5),
+                0 0 5px rgba(0, 123, 255, 0.3);
+    transform: translateY(-3px);
+  }
+  .address-card .form-check-label {
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 5px;
+  }
+  .address-card .card-text {
+    font-size: 0.75rem;
+  }
+  .delete-btn {
+    padding: 2px 6px;
+    font-size: 0.75rem;
+  }
+</style>
 
 {% endblock %}

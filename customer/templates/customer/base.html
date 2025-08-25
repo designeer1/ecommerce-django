@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyShop</title>
+    <title>Shop Now</title>
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -24,9 +24,9 @@
             background: linear-gradient(135deg, #ffffff, #f8f9fa);
         }
         footer {
-    font-size: 14px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-  }
+            font-size: 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
         .card-img-top-container {
             height: 200px;
             display: flex;
@@ -65,7 +65,7 @@
 <!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
   <div class="container-fluid">
-    <a class="navbar-brand" href="{% url 'customer_home' %}">MyShop</a>
+    <a class="navbar-brand" href="{% url 'customer_home' %}">Shop Now</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -79,41 +79,34 @@
         </li>
 
         <!-- Categories Dropdown -->
-        <!-- Categories Dropdown -->
-<!-- Categories Dropdown -->
-
-
-<li class="nav-item dropdown">
-  <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" data-bs-toggle="dropdown">
-    <i class="bi bi-grid"></i> Categories
-  </a>
-  <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-    {% for cat, subcats in categories.items %}
-      <li class="dropdown-submenu">
-        <a class="dropdown-item dropdown-toggle" href="#">{{ cat|title }}</a>
-        <ul class="dropdown-menu">
-          {% for sub in subcats %}
-            <li class="dropdown-submenu">
-              <a class="dropdown-item dropdown-toggle" href="{% url 'products_by_subcategory' sub %}">{{ sub|title }}</a>
-              <ul class="dropdown-menu">
-                {% for p in all_products %}
-                  {% if p.subcategory == sub and p.category == cat %}
-                    <li>
-                      <a class="dropdown-item" href="{% url 'product_detail' p.name %}">{{ p.name }}</a>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" data-bs-toggle="dropdown">
+            <i class="bi bi-grid"></i> Categories
+          </a>
+          <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+            {% for cat, subcats in categories.items %}
+              <li class="dropdown-submenu">
+                <a class="dropdown-item dropdown-toggle" href="#">{{ cat|title }}</a>
+                <ul class="dropdown-menu">
+                  {% for sub in subcats %}
+                    <li class="dropdown-submenu">
+                      <a class="dropdown-item dropdown-toggle" href="{% url 'products_by_subcategory' sub %}">{{ sub|title }}</a>
+                      <ul class="dropdown-menu">
+                        {% for p in all_products %}
+                          {% if p.subcategory == sub and p.category == cat %}
+                            <li>
+                              <a class="dropdown-item" href="{% url 'product_detail' p.name %}">{{ p.name }}</a>
+                            </li>
+                          {% endif %}
+                        {% endfor %}
+                      </ul>
                     </li>
-                  {% endif %}
-                {% endfor %}
-              </ul>
-            </li>
-          {% endfor %}
-        </ul>
-      </li>
-    {% endfor %}
-  </ul>
-</li>
-
-
-
+                  {% endfor %}
+                </ul>
+              </li>
+            {% endfor %}
+          </ul>
+        </li>
 
         <li class="nav-item">
           <a class="nav-link position-relative {% if request.resolver_match.url_name == 'customer_cart' %}active{% endif %}" 
@@ -163,7 +156,6 @@
     <small class="text-muted">Designed and developed with ❤️ using Django & Bootstrap</small>
   </div>
 </footer>
-
 
 <script>
   // Handle nested dropdowns in Bootstrap 5

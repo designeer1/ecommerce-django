@@ -12,6 +12,11 @@
       <div class="card-body text-center">
         <h5 class="card-title text-truncate">{{ product.name }}</h5>
         <p class="card-text text-primary fw-bold">₹ {{ product.price }}</p>
+        <div class="d-flex justify-content-center align-items-center mb-2">
+          <a href="{% url 'decrement_cart_item' product.name %}" class="btn btn-sm btn-outline-danger me-2">−</a>
+          <span class="fw-bold">{{ product.quantity }}</span>
+          <a href="{% url 'increment_cart_item' product.name %}" class="btn btn-sm btn-outline-success ms-2">+</a>
+        </div>
         <a href="{% url 'remove_from_cart' product.name %}" class="btn btn-danger btn-sm">
           <i class="bi bi-x-circle"></i> Remove
         </a>
@@ -23,7 +28,7 @@
   {% endfor %}
 </div>
 
-<!-- ✅ Buttons at bottom -->
+<!-- Buttons at bottom -->
 <div class="d-flex justify-content-between mt-4">
   <a href="{% url 'customer_home' %}" class="btn btn-outline-primary">
     <i class="bi bi-plus-circle"></i> Add More Items

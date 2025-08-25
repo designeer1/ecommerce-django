@@ -3,9 +3,13 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.urls import reverse
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from pathlib import Path
 import json
+import razorpay
+from django.conf import settings
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 
 DATA_FILE = Path(__file__).resolve().parent.parent / "owner" / "data.json"
 
@@ -39,54 +43,6 @@ def get_all_categories_and_subcategories():
         categories[cat] = list(categories[cat])
     return categories
 
-# ---------- Auth ----------
-def login_view(request):
-    if request.method == "POST":
-        username = request.POST.get("username")
-        password = request.POST.get("password")
-        user = authenticate(request, username=username, password=password)
-        if user:
-            login(request, user)
-            return redirect("customer_home")
-        else:
-            messages.error(request, "Invalid username or password")
-    return render(request, "customer/login.html")
-
-def register_view(request):
-    if request.method == "POST":
-        username = request.POST.get("username")
-        password = request.POST.get("password")
-        confirm_password = request.POST.get("confirm_password")
-        if password != confirm_password:
-            messages.error(request, "Passwords do not match")
-            return redirect("customer_register")
-        if User.objects.filter(username=username).exists():
-            messages.error(request, "Username already taken")
-            return redirect("customer_register")
-        User.objects.create_user(username=username, password=password)
-        messages.success(request, "Account created successfully! Please login.")
-        return redirect("customer_login")
-    return render(request, "customer/register.html")
-
-def logout_view(request):
-    logout(request)
-    return redirect("customer_login")
-
-# ---------- Shop ----------
-def home(request):
-    all_products = get_all_products()
-    categories = get_categories_with_products()
-    cart = request.session.get("cart", [])
-    cart_count = sum(item['quantity'] for item in cart)
-    
-    return render(request, "customer/home.html", {
-        "products": all_products,
-        "categories": categories,
-        "cart_count": cart_count
-    })
-
-
-
 def get_categories_with_products():
     data = load_data()
     user_data = data.get("user_data", {})
@@ -107,11 +63,65 @@ def get_categories_with_products():
                     "price": item.get("price", 0),
                 })
     return result
+
+# ---------- Auth ----------
+def login_view(request):
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+        user = authenticate(request, username=username, password=password)
+        if user:
+            login(request, user)
+            return redirect("customer_home")
+        else:
+            messages.error(request, "Invalid username or password")
+    return render(request, "customer/login.html", {"cart_count": len(request.session.get("cart", []))})
+
+def register_view(request):
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+        confirm_password = request.POST.get("confirm_password")
+        if password != confirm_password:
+            messages.error(request, "Passwords do not match")
+            return redirect("customer_register")
+        if User.objects.filter(username=username).exists():
+            messages.error(request, "Username already taken")
+            return redirect("customer_register")
+        User.objects.create_user(username=username, password=password)
+        messages.success(request, "Account created successfully! Please login.")
+        return redirect("customer_login")
+    return render(request, "customer/register.html", {"cart_count": len(request.session.get("cart", []))})
+
+def logout_view(request):
+    logout(request)
+    return redirect("customer_login")
+
+# ---------- Shop ----------
+def home(request):
+    all_products = get_all_products()
+    categories = get_categories_with_products()
+    cart = request.session.get("cart", [])
+    cart_count = len(cart)  # Count unique products
+    
+    # Get new_product_added from session and clear it to prevent repeated notifications
+    new_product_added = request.session.get("new_product_added", None)
+    if new_product_added:
+        del request.session["new_product_added"]  # Clear after use
+        request.session.modified = True
+    
+    return render(request, "customer/home.html", {
+        "products": all_products,
+        "categories": categories,
+        "cart_count": cart_count,
+        "new_product_added": new_product_added
+    })
+
 def products_by_category(request, cat_name):
     filtered_products = [p for p in get_all_products() if p.get("category") == cat_name]
     categories = get_all_categories_and_subcategories()
     cart = request.session.get("cart", [])
-    cart_count = sum(item['quantity'] for item in cart)
+    cart_count = len(cart)  # Count unique products
     return render(request, "customer/home.html", {
         "products": filtered_products,
         "categories": categories,
@@ -119,19 +129,11 @@ def products_by_category(request, cat_name):
         "cart_count": cart_count
     })
 
-
 def products_by_subcategory(request, sub_name):
-    """
-    Display products for a given subcategory name.
-    """
     data = load_data()
     all_products = []
-
-    # Loop through all users
     for _, udata in data.get("user_data", {}).items():
-        # Each user has 'products' list
         for p in udata.get("products", []):
-            # Match subcategory
             if p.get("subcategory") == sub_name:
                 all_products.append({
                     "name": p.get("name"),
@@ -140,17 +142,12 @@ def products_by_subcategory(request, sub_name):
                     "price": p.get("price"),
                     "image_path": p.get("image_path", p.get("image"))
                 })
-
-    # Load categories for navbar
     categories = {}
     for _, udata in data.get("user_data", {}).items():
         for cat in udata.get("categories", []):
             categories[cat] = sorted(list({p["subcategory"] for p in udata.get("subcategories", {}).get(cat, [])}))
-
-    # Cart count
     cart = request.session.get("cart", [])
-    cart_count = sum(item['quantity'] for item in cart)
-
+    cart_count = len(cart)  # Count unique products
     return render(request, "customer/home.html", {
         "products": all_products,
         "categories": categories,
@@ -158,15 +155,27 @@ def products_by_subcategory(request, sub_name):
         "cart_count": cart_count
     })
 
-
-
 def product_detail(request, product_name):
     product = next((p for p in get_all_products() if p.get("name") == product_name), None)
+    if product:
+        product["rating"] = product.get("rating", 5)
+        product["description"] = product.get(
+            "description",
+            f"This is a high-quality {product['name']}. Crafted with premium materials, it offers comfort, style, and durability. Perfect for daily wear or special occasions."
+        )
+        related_products = [
+            {**p, "rating": p.get("rating", 5)}
+            for p in get_all_products()
+            if p.get("subcategory") == product.get("subcategory") and p.get("name") != product_name
+        ]
+    else:
+        related_products = []
     categories = get_all_categories_and_subcategories()
     cart = request.session.get("cart", [])
-    cart_count = sum(item['quantity'] for item in cart)
+    cart_count = len(cart)  # Count unique products
     return render(request, "customer/product_detail.html", {
         "product": product,
+        "related_products": related_products,
         "categories": categories,
         "all_products": get_all_products(),
         "cart_count": cart_count
@@ -175,12 +184,27 @@ def product_detail(request, product_name):
 # ---------- Cart ----------
 def add_to_cart(request, product_name):
     cart = request.session.get("cart", [])
+    # Initialize notified products list in session if not exists
+    notified_products = request.session.get("notified_products", [])
+    
+    product_exists = False
     for item in cart:
         if item["name"] == product_name:
             item["quantity"] += 1
+            product_exists = True
             break
-    else:
+    if not product_exists:
         cart.append({"name": product_name, "quantity": 1})
+        # Only set new_product_added if product hasn't been notified before
+        if product_name not in notified_products:
+            request.session["new_product_added"] = product_name
+            notified_products.append(product_name)
+            request.session["notified_products"] = notified_products
+        else:
+            request.session["new_product_added"] = None
+    else:
+        request.session["new_product_added"] = None  # No notification for quantity increment
+    
     request.session["cart"] = cart
     request.session["cart_seen"] = False
     request.session.modified = True
@@ -189,6 +213,11 @@ def add_to_cart(request, product_name):
 def remove_from_cart(request, product_name):
     cart = request.session.get("cart", [])
     cart = [item for item in cart if item["name"] != product_name]
+    # Remove product from notified_products if it exists
+    notified_products = request.session.get("notified_products", [])
+    if product_name in notified_products:
+        notified_products.remove(product_name)
+        request.session["notified_products"] = notified_products
     request.session["cart"] = cart
     request.session.modified = True
     return redirect("customer_cart")
@@ -208,7 +237,10 @@ def cart_view(request):
                     "quantity": item["quantity"]
                 })
     request.session["cart_seen"] = True
-    return render(request, "customer/cart.html", {"products": cart_products})
+    return render(request, "customer/cart.html", {
+        "products": cart_products,
+        "cart_count": len(cart)  # Pass cart_count to base.html
+    })
 
 def cart_table_view(request):
     cart = request.session.get("cart", [])
@@ -227,7 +259,11 @@ def cart_table_view(request):
                     "quantity": item["quantity"],
                     "total_price": total_price
                 })
-    return render(request, "customer/cart_table.html", {"products": cart_products, "grand_total": grand_total})
+    return render(request, "customer/cart_table.html", {
+        "products": cart_products,
+        "grand_total": grand_total,
+        "cart_count": len(cart)  # Pass cart_count to base.html
+    })
 
 def increment_cart_item(request, product_name):
     cart = request.session.get("cart", [])
@@ -236,8 +272,9 @@ def increment_cart_item(request, product_name):
             item["quantity"] += 1
             break
     request.session["cart"] = cart
+    request.session["new_product_added"] = None  # Ensure no notification on quantity increment
     request.session.modified = True
-    return HttpResponseRedirect(reverse("cart_table"))
+    return HttpResponseRedirect(reverse("customer_cart"))  # Redirect to cart.html
 
 def decrement_cart_item(request, product_name):
     cart = request.session.get("cart", [])
@@ -247,61 +284,72 @@ def decrement_cart_item(request, product_name):
                 item["quantity"] -= 1
             else:
                 cart.remove(item)
+                # Remove from notified_products if removed from cart
+                notified_products = request.session.get("notified_products", [])
+                if product_name in notified_products:
+                    notified_products.remove(product_name)
+                    request.session["notified_products"] = notified_products
             break
     request.session["cart"] = cart
+    request.session["new_product_added"] = None  # Ensure no notification on quantity decrement
     request.session.modified = True
-    return HttpResponseRedirect(reverse("cart_table"))
+    return HttpResponseRedirect(reverse("customer_cart"))  # Redirect to cart.html
 
-# views.py
+from django.http import JsonResponse
+
 def checkout_address(request):
-    if request.method == "POST":
-        request.session["address"] = {
-            "full_name": request.POST.get("full_name"),
-            "address": request.POST.get("address"),
-            "city": request.POST.get("city"),
-            "pincode": request.POST.get("pincode"),
-            "phone": request.POST.get("phone"),
-        }
+    cart = request.session.get("cart", [])
+    if not cart:
+        return redirect("customer_cart")
+
+    # Load existing addresses from session (mock, replace with database if needed)
+    previous_addresses = request.session.get("previous_addresses", [])
+    if request.session.get("address"):
+        previous_addresses = [request.session["address"]] + previous_addresses[:2]  # Keep last 3 addresses
+        request.session["previous_addresses"] = previous_addresses
         request.session.modified = True
-        return redirect("checkout_payment")
-    return render(request, "customer/checkout_address.html")
 
-# Show products by category
-def products_by_category(request, category_name):
-    all_products = get_all_products()
-    filtered = [p for p in all_products if p.get("category")==category_name]
-    return render(request, "customer/home.html", {"products": filtered})
+    if request.method == "POST":
+        if 'full_name' in request.POST:  # New address save
+            new_address = {
+                "full_name": request.POST.get("full_name"),
+                "address": request.POST.get("address"),
+                "city": request.POST.get("city"),
+                "pincode": request.POST.get("pincode"),
+                "phone": request.POST.get("phone"),
+            }
+            previous_addresses.insert(0, new_address)
+            request.session["previous_addresses"] = previous_addresses[:3]
+            request.session["address"] = new_address
+            request.session.modified = True
+            return JsonResponse({"success": True})
+        elif 'selected_address_index' in request.POST:  # Address selection
+            index = int(request.POST.get("selected_address_index"))
+            if 0 <= index < len(previous_addresses):
+                request.session["address"] = previous_addresses[index]
+                request.session.modified = True
+                return JsonResponse({"success": True})
+            return JsonResponse({"success": False, "error": "Invalid address selection"})
+        elif 'delete_address_index' in request.POST:  # Delete address
+            index = int(request.POST.get("delete_address_index"))
+            if 0 <= index < len(previous_addresses):
+                deleted_address = previous_addresses.pop(index)
+                request.session["previous_addresses"] = previous_addresses
+                request.session.modified = True
+                # If deleted address was selected, clear current address or select another
+                if request.session.get("address") == deleted_address and previous_addresses:
+                    request.session["address"] = previous_addresses[0]
+                elif not previous_addresses:
+                    request.session["address"] = None
+                return JsonResponse({"success": True})
+            return JsonResponse({"success": False, "error": "Invalid address index"})
+        return JsonResponse({"success": False, "error": "Invalid request"})
 
-# Show single product
-def product_detail(request, product_name):
-    all_products = get_all_products()
-    product = next((p for p in all_products if p.get("name") == product_name), None)
-
-    if product:
-        # Main product
-        product["rating"] = product.get("rating", 5)
-        product["description"] = product.get(
-            "description",
-            f"This is a high-quality {product['name']}. Crafted with premium materials, it offers comfort, style, and durability. Perfect for daily wear or special occasions."
-        )
-
-        # Related products from same subcategory
-        related_products = [
-            {**p, "rating": p.get("rating", 5)}
-            for p in all_products
-            if p.get("subcategory") == product.get("subcategory") and p.get("name") != product_name
-        ]
-    else:
-        related_products = []
-
-    return render(request, "customer/product_detail.html", {
-        "product": product,
-        "related_products": related_products
+    return render(request, "customer/checkout_address.html", {
+        "cart_count": len(cart),
+        "previous_addresses": previous_addresses,
+        "selected_address": request.session.get("address")
     })
-
-
-import razorpay
-from django.conf import settings
 
 def checkout_payment(request):
     cart = request.session.get("cart", [])
@@ -325,13 +373,11 @@ def checkout_payment(request):
                     "image_path": p.get("image_path", "")
                 })
 
-    # Default values
     discount = 0
     grand_total = total
     coupon_applied = False
     coupon_code = ""
 
-    # If user submitted coupon
     if request.method == "POST":
         coupon_code = request.POST.get("coupon_code", "").strip()
         if coupon_code == "DISCOUNT20":
@@ -339,10 +385,7 @@ def checkout_payment(request):
             grand_total = total - discount
             coupon_applied = True
 
-    # Razorpay requires amount in paise
     amount_in_paise = int(grand_total * 100)
-
-    # Create Razorpay order
     client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_SECRET_KEY))
     razorpay_order = client.order.create({
         "amount": amount_in_paise,
@@ -350,7 +393,6 @@ def checkout_payment(request):
         "payment_capture": 1
     })
 
-    # Save invoice to session
     request.session["invoice"] = {
         "products": cart_products,
         "total": total,
@@ -368,32 +410,30 @@ def checkout_payment(request):
         "razorpay_order_id": razorpay_order["id"],
         "amount": amount_in_paise,
         "coupon_applied": coupon_applied,
-        "coupon_code": coupon_code
+        "coupon_code": coupon_code,
+        "cart_count": len(cart)  # Pass cart_count to base.html
     })
 
 def place_order(request):
     if request.method == "POST":
-        # Save order logic here or process payment
+        # Clear notified_products on order placement
+        request.session["notified_products"] = []
         request.session["cart"] = []
         messages.success(request, "Order placed successfully!")
         return redirect("customer_home")
     return redirect("checkout_payment")
+
 def payment_success(request):
     invoice = request.session.get("invoice", {})
     address = request.session.get("address", {})
-
-    # Optional: clear cart
     request.session["cart"] = []
+    request.session["notified_products"] = []  # Clear notified products
     request.session.modified = True
-
     return render(request, "customer/payment_success.html", {
         "invoice": invoice,
-        "address": address
+        "address": address,
+        "cart_count": 0  # Cart is cleared after payment
     })
-
-from django.http import HttpResponse
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
 
 def download_invoice_pdf(request):
     invoice = request.session.get("invoice")
@@ -408,11 +448,9 @@ def download_invoice_pdf(request):
     c = canvas.Canvas(response, pagesize=letter)
     width, height = letter
 
-    # Title
     c.setFont("Helvetica-Bold", 20)
     c.drawString(72, height - 72, "Payment Successful - Invoice")
 
-    # Shipping Address
     c.setFont("Helvetica-Bold", 14)
     c.drawString(72, height - 120, "Shipping Address:")
     c.setFont("Helvetica", 12)
@@ -426,13 +464,11 @@ def download_invoice_pdf(request):
         c.drawString(72, y, line)
         y -= 20
 
-    # Invoice Details header
     y -= 20
     c.setFont("Helvetica-Bold", 14)
     c.drawString(72, y, "Invoice Details:")
     y -= 20
 
-    # Table headers
     c.setFont("Helvetica-Bold", 12)
     c.drawString(72, y, "Product")
     c.drawString(300, y, "Qty")
@@ -442,10 +478,10 @@ def download_invoice_pdf(request):
     y -= 15
 
     c.setFont("Helvetica", 12)
-    for item in invoice.get("items", []):
+    for item in invoice.get("products", []):
         c.drawString(72, y, item.get("name", ""))
         c.drawString(300, y, str(item.get("quantity", 1)))
-        c.drawString(370, y, f"₹{item.get('total_price', 0)}")
+        c.drawString(370, y, f"₹{item.get('total', 0)}")
         y -= 20
 
     y -= 10
@@ -466,10 +502,9 @@ def download_invoice_pdf(request):
 
     c.showPage()
     c.save()
-
     return response
+
 def track_order(request, order_id):
-    # Mock order statuses for demo
     statuses = [
         "Order Placed",
         "Processing",
@@ -477,22 +512,17 @@ def track_order(request, order_id):
         "Out for Delivery",
         "Delivered"
     ]
-
-    # Simulate current status index (e.g. "Processing")
     current_status_index = 1
-
     return render(request, "customer/track_order.html", {
         "order_id": order_id,
         "statuses": statuses,
         "current_status_index": current_status_index,
+        "cart_count": len(request.session.get("cart", []))  # Pass cart_count to base.html
     })
 
 def order_success(request):
-    order_id = "order_R9KM15eIvDUlE2"  # Replace with real order ID from your order/payment processing
-    # other context like invoice_items, totals, etc.
-
-    context = {
+    order_id = "order_R9KM15eIvDUlE2"
+    return render(request, "customer/order_success.html", {
         "order_id": order_id,
-        # other context variables
-    }
-    return render(request, "customer/order_success.html", context)
+        "cart_count": 0  # Cart is cleared after order success
+    })
