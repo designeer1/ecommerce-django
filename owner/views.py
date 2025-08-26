@@ -248,12 +248,250 @@ def get_category_count(request):
     return JsonResponse({"count": count})
 
 # -------------------- Subcategory --------------------
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.core.paginator import Paginator
+from django.conf import settings
+from django.core.exceptions import ValidationError
+import os, uuid, logging
+
+logger = logging.getLogger(__name__)
+
+# Assume load_data(), save_data(), validate_image() are already defined
+
 def manage_subcategory(request):
     data = load_data()
-    logger.debug(f"Loaded data in manage_subcategory: {data}")
     email = request.session.get("email")
     if not email or email not in data['user_data']:
-        logger.warning(f"Redirecting to login: email={email}, user_data_keys={data.get('user_data', {}).keys()}")
+        return redirect("login")
+
+    user_data_email = data['user_data'][email]
+    categories = user_data_email.get("categories", [])
+    subcategories = user_data_email.get("subcategories", {})
+
+    if request.method == "POST":
+        category = request.POST.get("category")
+        product_name = request.POST.get("name")
+        subcategory_name = request.POST.get("subcategory")
+        price = request.POST.get("price")
+        description = request.POST.get("description")
+        image = request.FILES.get("image")
+
+        if category and product_name and subcategory_name and price:
+            if category not in subcategories:
+                subcategories[category] = []
+
+            if not any(sc["name"] == product_name for sc in subcategories[category]):
+                try:
+                    if image:
+                        validate_image(image)
+                        image_dir = os.path.join(settings.MEDIA_ROOT, "products")
+                        os.makedirs(image_dir, exist_ok=True)
+                        ext = os.path.splitext(image.name)[1]
+                        unique_filename = f"{uuid.uuid4().hex}{ext}"
+                        image_path = os.path.join(image_dir, unique_filename)
+                        with open(image_path, "wb+") as dest:
+                            for chunk in image.chunks():
+                                dest.write(chunk)
+                        relative_path = f"/media/products/{unique_filename}"
+                    else:
+                        relative_path = "/media/products/default.png"
+
+                    subcategories[category].append({
+                        "name": product_name,  # unique identifier
+                        "subcategory": subcategory_name,
+                        "price": float(price),
+                        "description": description or "",
+                        "image": relative_path,
+                        "category": category,
+                        "rating": 0
+                    })
+                    save_data(data)
+                except ValidationError as e:
+                    return render(request, "subcategory.html", {
+                        "categories": categories,
+                        "error": str(e),
+                        "page_obj": Paginator([], 5).get_page(1)
+                    })
+        return redirect("manage_subcategory")
+
+    # Collect all subcategories for display
+    all_subs = []
+    for cat, subs in subcategories.items():
+        for sc in subs:
+            sc["category"] = cat
+            all_subs.append(sc)
+
+    paginator = Paginator(all_subs, 5)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "subcategory.html", {
+        "categories": categories,
+        "page_obj": page_obj
+    })
+
+
+def delete_subcategory(request, category, name):
+    data = load_data()
+    email = request.session.get("email")
+    if not email or email not in data['user_data']:
+        return redirect("login")
+
+    subcategories = data['user_data'][email].get("subcategories", {})
+    if category in subcategories:
+        subcategories[category] = [sc for sc in subcategories[category] if sc["name"] != name]
+        save_data(data)
+
+    return redirect("manage_subcategory")
+
+
+
+def edit_subcategory(request, cat_name, old_subcat_name):
+    data = load_data()
+    email = request.session.get("email")
+    if not email or email not in data['user_data']:
+        return redirect("login")
+
+    user_data_email = data['user_data'][email]
+    categories = user_data_email.get("categories", [])
+    subcategories = user_data_email.get("subcategories", {})
+
+    current_subcat = None
+    if cat_name in subcategories:
+        for sc in subcategories[cat_name]:
+            if sc["name"] == old_subcat_name:
+                current_subcat = sc
+                break
+
+    if not current_subcat:
+        return redirect("manage_subcategory")
+
+    if request.method == "POST":
+        new_subcat_name = request.POST.get("subcategory")
+        new_category = request.POST.get("category")
+        new_name = request.POST.get("name")
+        new_price = request.POST.get("price")
+        description = request.POST.get("description")
+        new_image = request.FILES.get("image")
+
+        if new_category and new_subcat_name and new_name:
+            try:
+                # Handle image update
+                if new_image:
+                    validate_image(new_image)
+                    image_dir = os.path.join(settings.MEDIA_ROOT, "products")
+                    os.makedirs(image_dir, exist_ok=True)
+                    ext = os.path.splitext(new_image.name)[1]
+                    unique_filename = f"{uuid.uuid4().hex}{ext}"
+                    image_path = os.path.join(image_dir, unique_filename)
+                    with open(image_path, "wb+") as dest:
+                        for chunk in new_image.chunks():
+                            dest.write(chunk)
+                    relative_path = f"/media/products/{unique_filename}"
+                else:
+                    relative_path = current_subcat.get("image", "/media/products/default.png")
+
+                # Remove old subcategory entry
+                subcategories[cat_name] = [sc for sc in subcategories[cat_name] if sc["name"] != old_subcat_name]
+
+                # Ensure new category exists
+                if new_category not in subcategories:
+                    subcategories[new_category] = []
+
+                # Add updated subcategory/product
+                subcategories[new_category].append({
+                    "name": new_name,
+                    "subcategory": new_subcat_name,
+                    "price": float(new_price) if new_price else current_subcat.get("price", 0),
+                    "description": description or current_subcat.get("description", ""),
+                    "image": relative_path,
+                    "category": new_category,
+                    "rating": current_subcat.get("rating", 0)
+                })
+
+                save_data(data)
+            except ValidationError as e:
+                return render(request, "subcategory.html", {
+                    "categories": categories,
+                    "error": str(e)
+                })
+
+        return redirect("manage_subcategory")
+
+    # Fallback GET redirect
+    return redirect("manage_subcategory")
+
+
+
+def search_subcategories(request):
+    data = load_data()
+    email = request.session.get("email")
+    if not email or email not in data['user_data']:
+        return JsonResponse({"results": []})
+
+    q = request.GET.get("q", "").lower()
+    subcategories = data['user_data'][email].get("subcategories", {})
+
+    all_subs = []
+    for cat, subs in subcategories.items():
+        for sc in subs:
+            sc["category"] = cat
+            all_subs.append(sc)
+
+    results = [
+        {
+            "name": sc["name"],
+            "subcategory": sc["subcategory"],
+            "category": sc["category"],
+            "price": sc["price"],
+            "description": sc.get("description", ""),
+            "image": sc.get("image", "/media/products/default.png"),
+            "rating": sc.get("rating", 0)
+        }
+        for sc in all_subs
+        if q in sc["name"].lower() or q in sc["subcategory"].lower() or q in sc["category"].lower()
+    ]
+
+    return JsonResponse({"results": results})
+
+
+def get_subcategory_count(request):
+    data = load_data()
+    email = request.session.get("email")
+    if not email or email not in data['user_data']:
+        return JsonResponse({"count": 0})
+
+    subcategories = data['user_data'][email].get("subcategories", {})
+    count = sum(len(subs) for subs in subcategories.values())
+    return JsonResponse({"count": count})
+
+
+def update_subcategory_rating(request):
+    data = load_data()
+    email = request.session.get("email")
+    if not email or email not in data['user_data']:
+        return JsonResponse({"success": False})
+
+    category = request.POST.get("category")
+    name = request.POST.get("name")
+    rating = int(request.POST.get("rating", 0))
+
+    subcategories = data['user_data'][email].get("subcategories", {})
+    if category in subcategories:
+        for sc in subcategories[category]:
+            if sc["name"] == name:
+                sc["rating"] = rating
+                save_data(data)
+                return JsonResponse({"success": True, "rating": rating})
+
+    return JsonResponse({"success": False})
+
+
+def add_subcategory(request):
+    data = load_data()
+    email = request.session.get("email")
+    if not email or email not in data['user_data']:
         return redirect("login")
 
     user_data_email = data['user_data'][email]
@@ -297,183 +535,12 @@ def manage_subcategory(request):
                         "category": category,
                         "rating": 0
                     })
-
                     save_data(data)
                 except ValidationError as e:
-                    return render(request, "subcategory.html", {
-                        "categories": categories,
-                        "error": str(e),
-                        "page_obj": Paginator([], 5).get_page(1)
-                    })
-
-        return redirect("manage_subcategory")
-
-    all_subs = []
-    for cat, subs in subcategories.items():
-        for sc in subs:
-            sc["category"] = cat
-            all_subs.append(sc)
-
-    paginator = Paginator(all_subs, 5)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
-
-    return render(request, "subcategory.html", {
-        "categories": categories,
-        "page_obj": page_obj
-    })
-
-def delete_subcategory(request, category, name):
-    data = load_data()
-    email = request.session.get("email")
-    if not email or email not in data['user_data']:
-        return redirect("login")
-
-    subcategories = data['user_data'][email].get("subcategories", {})
-
-    if category in subcategories:
-        subcategories[category] = [sc for sc in subcategories[category] if sc["name"] != name]
-        save_data(data)
+                    return redirect("manage_subcategory")
 
     return redirect("manage_subcategory")
 
-def edit_subcategory(request, cat_name, old_subcat_name):
-    data = load_data()
-    email = request.session.get("email")
-    if not email or email not in data['user_data']:
-        return redirect("login")
-
-    user_data_email = data['user_data'][email]
-    categories = user_data_email.get("categories", [])
-    subcategories = user_data_email.get("subcategories", {})
-
-    current_subcat = None
-    if cat_name in subcategories:
-        for sc in subcategories[cat_name]:
-            if sc["name"] == old_subcat_name:
-                current_subcat = sc
-                break
-
-    if not current_subcat:
-        return redirect("manage_subcategory")
-
-    if request.method == "POST":
-        new_subcat_name = request.POST.get("subcategory")
-        new_category = request.POST.get("category")
-        new_price = request.POST.get("price")
-        description = request.POST.get("description")
-        new_image = request.FILES.get("image")
-
-        if new_category and new_subcat_name:
-            try:
-                if new_image:
-                    validate_image(new_image)
-                    image_dir = os.path.join(settings.MEDIA_ROOT, "products")
-                    os.makedirs(image_dir, exist_ok=True)
-                    ext = os.path.splitext(new_image.name)[1]
-                    unique_filename = f"{uuid.uuid4().hex}{ext}"
-                    image_path = os.path.join(image_dir, unique_filename)
-                    with open(image_path, "wb+") as dest:
-                        for chunk in new_image.chunks():
-                            dest.write(chunk)
-                    relative_path = f"/media/products/{unique_filename}"
-                else:
-                    relative_path = current_subcat.get("image", "/media/products/default.png")
-
-                subcategories[cat_name] = [sc for sc in subcategories[cat_name] if sc["name"] != old_subcat_name]
-
-                if new_category not in subcategories:
-                    subcategories[new_category] = []
-
-                subcategories[new_category].append({
-                    "name": new_subcat_name,
-                    "subcategory": new_subcat_name,
-                    "price": float(new_price) if new_price else current_subcat.get("price", 0),
-                    "description": description or current_subcat.get("description", ""),
-                    "image": relative_path,
-                    "category": new_category,
-                    "rating": current_subcat.get("rating", 0)
-                })
-
-                save_data(data)
-            except ValidationError as e:
-                return render(request, "edit_subcategory.html", {
-                    "categories": categories,
-                    "current_category": cat_name,
-                    "old_subcat_name": old_subcat_name,
-                    "subcategory": current_subcat,
-                    "error": str(e)
-                })
-
-        return redirect("manage_subcategory")
-
-    return render(request, "edit_subcategory.html", {
-        "categories": categories,
-        "current_category": cat_name,
-        "old_subcat_name": old_subcat_name,
-        "subcategory": current_subcat
-    })
-
-def search_subcategories(request):
-    data = load_data()
-    email = request.session.get("email")
-    if not email or email not in data['user_data']:
-        return JsonResponse({"results": []})
-
-    q = request.GET.get("q", "").lower()
-    subcategories = data['user_data'][email].get("subcategories", {})
-
-    all_subs = []
-    for cat, subs in subcategories.items():
-        for sc in subs:
-            sc["category"] = cat
-            all_subs.append(sc)
-
-    results = [
-        {
-            "name": sc["name"],
-            "subcategory": sc["subcategory"],
-            "category": sc["category"],
-            "price": sc["price"],
-            "description": sc.get("description", ""),
-            "image": sc.get("image", "/media/products/default.png"),
-            "rating": sc.get("rating", 0)
-        }
-        for sc in all_subs
-        if q in sc["name"].lower() or q in sc["subcategory"].lower() or q in sc["category"].lower()
-    ]
-
-    return JsonResponse({"results": results})
-
-def get_subcategory_count(request):
-    data = load_data()
-    email = request.session.get("email")
-    if not email or email not in data['user_data']:
-        return JsonResponse({"count": 0})
-
-    subcategories = data['user_data'][email].get("subcategories", {})
-    count = sum(len(subs) for subs in subcategories.values())
-    return JsonResponse({"count": count})
-
-def update_subcategory_rating(request):
-    data = load_data()
-    email = request.session.get("email")
-    if not email or email not in data['user_data']:
-        return JsonResponse({"success": False})
-
-    category = request.POST.get("category")
-    name = request.POST.get("name")
-    rating = int(request.POST.get("rating", 0))
-
-    subcategories = data['user_data'][email].get("subcategories", {})
-    if category in subcategories:
-        for sc in subcategories[category]:
-            if sc["name"] == name:
-                sc["rating"] = rating
-                save_data(data)
-                return JsonResponse({"success": True, "rating": rating})
-
-    return JsonResponse({"success": False})
 
 # -------------------- Products --------------------
 def manage_products(request):
