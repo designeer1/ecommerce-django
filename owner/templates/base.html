@@ -32,11 +32,10 @@
     <a class="navbar-brand" href="{% url 'dashboard' %}">TaskPro</a>
 
     <!-- Search Bar -->
-<form class="d-flex mx-auto" role="search" method="get" action="{% url 'search' %}">
-  <input class="form-control me-2" type="search" name="q" placeholder="Search products..." aria-label="Search">
-  <button class="btn btn-outline-light" type="submit"><i class="bi bi-search"></i></button>
-</form>
-
+    <form class="d-flex mx-auto" role="search" method="get" action="{% url 'search_products' %}">
+      <input class="form-control me-2" type="search" name="q" placeholder="Search products..." aria-label="Search">
+      <button class="btn btn-outline-light" type="submit"><i class="bi bi-search"></i></button>
+    </form>
 
     <!-- Right Side -->
     <div class="d-flex align-items-center">

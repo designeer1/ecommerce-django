@@ -1,14 +1,59 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
 
-<div class="container">
-  <h2 class="mb-4">Edit Category</h2>
+<div class="container py-5">
+  <h2 class="mb-4 text-center">Edit Subcategory</h2>
 
-  <form method="post" class="d-flex">
+  <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
-    <input type="text" name="category" value="{{ old_name }}" class="form-control me-2" required>
-    <button type="submit" class="btn btn-success">Update</button>
+    {% if error %}
+      <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <div class="mb-3">
+      <label for="category" class="form-label">Category</label>
+      <select name="category" class="form-select" required>
+        <option value="" disabled>Select a category</option>
+        {% for cat in categories %}
+          <option value="{{ cat }}" {% if cat == current_category %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label for="subcategory" class="form-label">Subcategory Name</label>
+      <input type="text" name="subcategory" class="form-control" value="{{ subcategory.subcategory }}" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="price" class="form-label">Price</label>
+      <input type="number" step="0.01" name="price" class="form-control" value="{{ subcategory.price }}" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="description" class="form-label">Description</label>
+      <textarea name="description" class="form-control" rows="4">{{ subcategory.description|default:'' }}</textarea>
+    </div>
+
+    <div class="mb-3">
+      <label for="image" class="form-label">Image</label>
+      <input type="file" name="image" class="form-control" accept="image/jpeg,image/png">
+      {% if subcategory.image %}
+        <div class="mt-2">
+          <img src="{{ subcategory.image|default:'/media/products/default.png' }}" alt="Current Image"
+               style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px;">
+        </div>
+      {% endif %}
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+    <a href="{% url 'manage_subcategory' %}" class="btn btn-secondary">Cancel</a>
   </form>
 </div>
+
+<style>
+.form-label { font-weight: bold; }
+</style>
 
 {% endblock %}

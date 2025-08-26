@@ -1,47 +1,191 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<div class="container">
-  <h2 class="mb-4">Manage Categories</h2>
+<div class="container py-4">
 
-  <!-- Add form -->
-  <form method="POST" enctype="multipart/form-data">
-  {% csrf_token %}
-  {{ form.as_p }}
-  <div class="d-flex gap-2">
-    <button type="submit" class="btn btn-primary">Update</button>
-    <a href="{% url 'manage_products' %}" class="btn btn-secondary">Back</a>
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="fw-bold text-primary"><i class="bi bi-list-ul"></i> Manage Categories</h2>
+    
+    <!-- Total Count Badge -->
+    <span id="category-count" class="badge bg-primary fs-6 shadow-sm">
+      Total Categories: {{ count }}
+    </span>
+
+    <button class="btn btn-primary shadow" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+      <i class="bi bi-plus-circle"></i> Add Category
+    </button>
   </div>
-</form>
 
+  <!-- Search + Filter -->
+  <form method="GET" class="row g-2 mb-3">
+    <div class="col-md-6 position-relative">
+      <input type="text" id="liveSearch" 
+             class="form-control" 
+             placeholder="🔍 Search categories... (type 2+ letters)">
+      
+      <!-- live results container -->
+      <div id="searchResults" 
+           class="list-group position-absolute w-100 mt-1" 
+           style="max-height:250px; overflow-y:auto; z-index:1000;">
+      </div>
+    </div>
+    <div class="col-md-3">
+      <select name="sort" class="form-select">
+        <option value="">Sort By</option>
+        <option value="name" {% if request.GET.sort == 'name' %}selected{% endif %}>Name (A-Z)</option>
+        <option value="-name" {% if request.GET.sort == '-name' %}selected{% endif %}>Name (Z-A)</option>
+        <option value="created_at" {% if request.GET.sort == 'created_at' %}selected{% endif %}>Newest</option>
+        <option value="-created_at" {% if request.GET.sort == '-created_at' %}selected{% endif %}>Oldest</option>
+      </select>
+    </div>
+    <div class="col-md-3 d-flex">
+      <button type="submit" class="btn btn-success me-2"><i class="bi bi-funnel"></i> Apply</button>
+      <a href="{% url 'manage_category' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-repeat"></i> Reset</a>
+    </div>
+  </form>
 
-  <!-- Categories table -->
-  <table class="table table-striped table-hover">
-    <thead class="table-dark">
-      <tr>
-        <th>#</th>
-        <th>Category</th>
-        <th class="text-end">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for cat in categories %}
-      <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ cat }}</td>
-        <td class="text-end">
-          <a href="{% url 'edit_category' cat %}" class="btn btn-sm btn-warning">add category</a>
-          <a href="{% url 'delete_category' cat %}" class="btn btn-sm btn-danger"
-             onclick="return confirm('Delete {{ cat }}?');">Delete</a>
-        </td>
-      </tr>
-      {% empty %}
-      <tr>
-        <td colspan="3" class="text-center">No categories yet</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <!-- Category Table -->
+  <div class="table-responsive shadow-sm rounded">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-primary">
+        <tr>
+          <th>#</th>
+          <th>Image</th>
+          <th>Name</th>
+          <th>Description</th>
+          <th class="text-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cat in page_obj %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>
+            {% if cat.image %}
+              <img src="{{ cat.image.url }}" width="60" height="60" class="rounded" style="object-fit:cover;">
+            {% else %}
+              <img src="/static/images/no-image.png" width="60" height="60" class="rounded" style="object-fit:cover;">
+            {% endif %}
+          </td>
+          <td class="fw-semibold">{{ cat.name }}</td>
+          <td class="text-muted">{{ cat.description|default:"—" }}</td>
+          <td class="text-center">
+            <a href="{% url 'edit_category' cat.name %}" class="btn btn-sm btn-outline-warning me-2">
+              <i class="bi bi-pencil-square"></i> Edit
+            </a>
+            <a href="{% url 'delete_category' cat.name %}" class="btn btn-sm btn-outline-danger"
+               onclick="return confirm('Delete {{ cat.name }}?');">
+              <i class="bi bi-trash"></i> Delete
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="text-center text-muted py-4">
+            <i class="bi bi-inbox"></i> No categories found
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+    <nav aria-label="Page navigation" class="mt-3">
+      <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+          <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+          </li>
+        {% endfor %}
+        {% if page_obj.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  {% endif %}
+
 </div>
+
+<!-- Add Category Modal -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content shadow-lg border-0 rounded-4">
+      <div class="modal-header bg-primary text-white rounded-top-4">
+        <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Add Category</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Category Name</label>
+            {{ form.name }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            {{ form.description }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Category Image</label>
+            {{ form.image }}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success"><i class="bi bi-save"></i> Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+/* 🔍 Live Search */
+document.getElementById("liveSearch").addEventListener("keyup", function() {
+    let query = this.value;
+
+    if (query.length < 2) {
+        document.getElementById("searchResults").innerHTML = "";
+        return;
+    }
+
+    fetch(`/owner/search-categories/?q=${query}`)
+        .then(response => response.json())
+        .then(data => {
+            let resultsBox = document.getElementById("searchResults");
+            resultsBox.innerHTML = "";
+
+            if (data.results.length === 0) {
+                resultsBox.innerHTML = `<div class="list-group-item">No results found</div>`;
+            } else {
+                data.results.forEach(cat => {
+                    resultsBox.innerHTML += `
+                        <a href="#" class="list-group-item list-group-item-action d-flex align-items-center">
+                          <img src="${cat.image}" width="40" height="40" class="rounded me-2" style="object-fit:cover;">
+                          <span>${cat.name}</span>
+                        </a>`;
+                });
+            }
+        });
+});
+
+/* 🔄 Auto Update Total Count */
+function updateCategoryCount() {
+  fetch("{% url 'category_count' %}")
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById("category-count").textContent =
+        "Total Categories: " + data.count;
+    });
+}
+setInterval(updateCategoryCount, 3000);
+updateCategoryCount();
+</script>
 
 {% endblock %}

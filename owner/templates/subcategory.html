@@ -1,72 +1,287 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block content %}
-<div class="container">
-  <h2 class="mb-4">Manage Subcategories</h2>
+<div class="container py-5">
+  <h2 class="mb-4 text-center">Manage Subcategories</h2>
 
-  <!-- Subcategory Add form -->
-  <form method="post" enctype="multipart/form-data" class="row g-2 mb-4">
-    {% csrf_token %}
-    <div class="col-md-2">
-      <select name="category" class="form-select" required>
-        <option value="" disabled selected>Select Category</option>
-        {% for cat in categories %}
-          <option value="{{ cat }}">{{ cat }}</option>
-        {% endfor %}
-      </select>
+  <!-- Search + Count Row -->
+  <div class="d-flex justify-content-between align-items-center mb-3 position-relative">
+    <div class="w-50 position-relative">
+      <input type="text" id="searchSubcatInput" class="form-control" placeholder="Search subcategories...">
+      <ul id="searchDropdown" class="list-group position-absolute w-100 shadow-sm" 
+          style="z-index: 1000; display: none; max-height: 250px; overflow-y: auto;"></ul>
     </div>
-    <div class="col-md-2">
-      <input type="text" name="name" placeholder="Enter product name"
-             class="form-control" required>
-    </div>
-    <div class="col-md-2">
-      <input type="text" name="subcategory" placeholder="Enter subcategory"
-             class="form-control" required>
-    </div>
-    <div class="col-md-2">
-      <input type="number" name="price" placeholder="Price" class="form-control" step="0.01" required>
-    </div>
-    <div class="col-md-3">
-      <input type="file" name="image" accept="image/*" class="form-control" required>
-    </div>
-    <div class="col-md-1 d-grid">
-      <button type="submit" class="btn btn-primary">Add</button>
-    </div>
-  </form>
+    <span class="badge bg-dark p-2">Total: <span id="subcategoryCount">0</span></span>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+      + Add Product
+    </button>
+  </div>
 
-  <!-- Subcategories table -->
-  <table class="table table-striped table-hover">
-    <thead class="table-dark">
-      <tr>
-        <th>#</th>
-        <th>Category</th>
-        <th>Name</th>
-        <th>Subcategory</th>
-        <th>Price</th>
-        <th class="text-end">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for cat, subcat_list in subcategories.items %}
-        {% for subcat in subcat_list %}
+  <!-- Subcategories Table -->
+  <div id="subcategoryTable" class="table-responsive">
+    <table class="table table-bordered align-middle text-center shadow-sm">
+      <thead class="table-dark">
+        <tr>
+          <th>ID</th>
+          <th>Image</th>
+          <th>Category</th>
+          <th>Subcategory</th>
+          <th>Product Name</th>
+          <th>Price</th>
+          <th>Description</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for subcat in page_obj %}
           <tr>
-            <td>{{ forloop.parentloop.counter0|add:forloop.counter }}</td>
-            <td>{{ cat }}</td>
-            <td>{{ subcat.name }}</td>
+            <td>{{ forloop.counter0|add:page_obj.start_index }}</td>
+            <td>
+              <img src="{{ subcat.image|default:'/media/products/default.png' }}" alt="{{ subcat.name }}"
+                   style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+              <div class="rating-display mt-1" style="font-size:14px; color:#ccc;">☆☆☆☆☆</div>
+            </td>
+            <td>{{ subcat.category }}</td>
             <td>{{ subcat.subcategory }}</td>
-            <td>₹{{ subcat.price }}</td>
-            <td class="text-end">
-              <a href="{% url 'edit_subcategory' cat subcat.name %}" class="btn btn-sm btn-warning">Edit</a>
-              <a href="{% url 'delete_subcategory' cat subcat.name %}" class="btn btn-sm btn-danger"
-                 onclick="return confirm('Delete {{ subcat.name }} under {{ cat }}?');">Delete</a>
+            <td>{{ subcat.name }}</td>
+            <td>₹ {{ subcat.price }}</td>
+            <td>
+              <span class="description-text" title="{{ subcat.description|default:'No description available' }}">
+                {{ subcat.description|default:'No description available'|truncatechars:30 }}
+              </span>
+            </td>
+            <td>
+              <!-- ✅ Corrected URLs -->
+              <a href="{% url 'edit_subcategory' subcat.category subcat.name %}" 
+                class="btn btn-warning btn-sm me-1">Edit</a>
+
+              <a href="{% url 'delete_subcategory' subcat.category subcat.subcategory %}" 
+                 class="btn btn-danger btn-sm"
+                 onclick="return confirm('Delete {{ subcat.subcategory }}?');">Delete</a>
             </td>
           </tr>
         {% empty %}
           <tr>
-            <td colspan="6" class="text-center">No subcategories yet</td>
+            <td colspan="8" class="text-center text-muted">No subcategories yet.</td>
           </tr>
         {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+  <nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+      {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">Previous</span></li>
+      {% endif %}
+
+      {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+          <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+        {% else %}
+          <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+        {% endif %}
       {% endfor %}
-    </tbody>
-  </table>
+
+      {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">Next</span></li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+
+  <!-- Rating Modal -->
+  <div class="modal fade" id="subcatModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content shadow-lg">
+        <div class="modal-body d-flex align-items-center">
+          <img id="modalImage" src="" style="width:100px; height:100px; object-fit:cover; border-radius:6px; margin-right:15px;">
+          <div>
+            <h5 id="modalTitle"></h5>
+            <div id="starContainer" class="mb-2" style="font-size:20px; cursor:pointer;">
+              <span class="star" data-value="1">☆</span>
+              <span class="star" data-value="2">☆</span>
+              <span class="star" data-value="3">☆</span>
+              <span class="star" data-value="4">☆</span>
+              <span class="star" data-value="5">☆</span>
+            </div>
+            <button id="updateRatingBtn" class="btn btn-primary btn-sm">Update Rating</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Product Modal -->
+  <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addProductModalLabel">Add New Product/Subcategory</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="category" class="form-label">Category</label>
+              <select name="category" class="form-select" required>
+                <option value="" disabled selected>Select a category</option>
+                {% for cat in categories %}
+                  <option value="{{ cat }}">{{ cat }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="subcategory" class="form-label">Subcategory Name</label>
+              <input type="text" name="subcategory" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label for="name" class="form-label">Product Name</label>
+              <input type="text" name="name" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label for="price" class="form-label">Price</label>
+              <input type="number" step="0.01" name="price" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label for="description" class="form-label">Description</label>
+              <textarea name="description" class="form-control" rows="4"></textarea>
+            </div>
+            <div class="mb-3">
+              <label for="image" class="form-label">Image</label>
+              <input type="file" name="image" class="form-control" accept="image/jpeg,image/png">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="submit" class="btn btn-primary">Add</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
 </div>
+
+<style>
+.description-text { 
+  display: inline-block; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: #0d6efd; font-style: italic; 
+}
+.description-text:hover { color: #005cbf; cursor: pointer; }
+#searchDropdown li { cursor: pointer; }
+#searchDropdown li:hover { background: #f8f9fa; }
+.dropdown-link { color: #0d6efd; font-weight: bold; text-decoration: none; }
+.dropdown-link:hover { color: #0056b3; text-decoration: underline; }
+.star { font-size: 20px; margin-right: 3px; }
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const searchInput = document.getElementById("searchSubcatInput");
+  const resultsList = document.getElementById("searchDropdown");
+  const totalCount = document.getElementById("subcategoryCount");
+
+  let selectedCategory = null;
+  let selectedSubcategory = null;
+  let currentRating = 0;
+
+  // Load total count
+  fetch("{% url 'get_subcategory_count' %}")
+    .then(res => res.json())
+    .then(data => totalCount.innerText = data.count);
+
+  // Live search
+  searchInput.addEventListener("keyup", function() {
+    const query = this.value.trim();
+    if(query.length < 2) { resultsList.style.display = "none"; return; }
+    fetch("{% url 'search_subcategories' %}?q=" + query)
+      .then(res => res.json())
+      .then(data => {
+        resultsList.innerHTML = "";
+        if(data.results.length === 0) { resultsList.style.display = "none"; return; }
+        data.results.forEach(sc => {
+          const li = document.createElement("li");
+          li.className = "list-group-item d-flex align-items-center";
+          li.innerHTML = `
+            <img src="${sc.image}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;margin-right:10px;">
+            <a href="#" class="dropdown-link" data-category="${sc.category}" data-subcategory="${sc.subcategory}">
+              ${sc.category} → ${sc.subcategory}
+            </a>
+          `;
+          resultsList.appendChild(li);
+        });
+        resultsList.style.display = "block";
+      });
+  });
+
+  // Click on dropdown → open modal
+  resultsList.addEventListener("click", function(e) {
+    if(e.target.classList.contains("dropdown-link")) {
+      e.preventDefault();
+      selectedCategory = e.target.dataset.category;
+      selectedSubcategory = e.target.dataset.subcategory;
+
+      const img = e.target.parentElement.querySelector("img").src;
+      document.getElementById("modalTitle").innerText = `${selectedCategory} → ${selectedSubcategory}`;
+      document.getElementById("modalImage").src = img;
+      currentRating = 0;
+
+      // Reset stars
+      document.querySelectorAll("#starContainer .star").forEach(s => { s.innerText = "☆"; s.style.color = "#ccc"; });
+
+      const modal = new bootstrap.Modal(document.getElementById("subcatModal"));
+      modal.show();
+    }
+  });
+
+  // ⭐ Star click
+  const stars = document.querySelectorAll("#starContainer .star");
+  stars.forEach(star => {
+    star.addEventListener("click", function() {
+      currentRating = parseInt(this.dataset.value);
+      stars.forEach((s, idx) => {
+        if (idx < currentRating) { s.innerText = "★"; s.style.color = "#f5c518"; }
+        else { s.innerText = "☆"; s.style.color = "#ccc"; }
+      });
+    });
+  });
+
+  // Update rating
+  document.getElementById("updateRatingBtn").addEventListener("click", function() {
+    if(!selectedCategory || !selectedSubcategory || currentRating === 0) {
+      alert("Please select a rating before updating.");
+      return;
+    }
+    fetch("{% url 'update_subcategory_rating' %}", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": "{{ csrf_token }}",
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: `category=${encodeURIComponent(selectedCategory)}&name=${encodeURIComponent(selectedSubcategory)}&rating=${currentRating}`
+    })
+    .then(res => res.json())
+    .then(data => {
+      if(data.success) { alert("Rating updated successfully!"); location.reload(); }
+      else { alert("Failed to update rating."); }
+    })
+    .catch(() => alert("Error updating rating."));
+  });
+});
+</script>
+
 {% endblock %}
