@@ -1,3 +1,4 @@
+# views.py
 import json
 import os
 import uuid
@@ -10,6 +11,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 import logging
 from django.db.models import Q
+from django.urls import reverse
 
 # Models and Forms
 from .models import Category, SubCategory, Product
@@ -190,11 +192,24 @@ def manage_category(request):
     page_obj = paginator.get_page(page_number)
 
     form = CategoryForm()
+    data = load_data()
+    email = request.session.get("email")
 
     if request.method == "POST":
         form = CategoryForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
+            category = form.save()
+            if email and email in data['user_data']:
+                # Sync category with data.json
+                user_data_email = data['user_data'][email]
+                if "categories" not in user_data_email:
+                    user_data_email["categories"] = []
+                if "subcategories" not in user_data_email:
+                    user_data_email["subcategories"] = {}
+                if category.name not in user_data_email["categories"]:
+                    user_data_email["categories"].append(category.name)
+                    user_data_email["subcategories"][category.name] = []
+                    save_data(data)
             return redirect("manage_category")
 
     return render(request, "manage_category.html", {
@@ -208,6 +223,15 @@ def delete_category(request, cat_name):
     try:
         category = Category.objects.get(name=cat_name)
         category.delete()
+        data = load_data()
+        email = request.session.get("email")
+        if email and email in data['user_data']:
+            user_data_email = data['user_data'][email]
+            if cat_name in user_data_email.get("categories", []):
+                user_data_email["categories"].remove(cat_name)
+            if cat_name in user_data_email.get("subcategories", {}):
+                del user_data_email["subcategories"][cat_name]
+            save_data(data)
     except Category.DoesNotExist:
         pass
     return redirect("manage_category")
@@ -218,10 +242,23 @@ def edit_category(request, cat_name):
     except Category.DoesNotExist:
         return redirect("manage_category")
 
+    data = load_data()
+    email = request.session.get("email")
+
     if request.method == "POST":
         form = CategoryForm(request.POST, request.FILES, instance=category)
         if form.is_valid():
-            form.save()
+            old_name = cat_name
+            category = form.save()
+            if email and email in data['user_data']:
+                user_data_email = data['user_data'][email]
+                if old_name != category.name:
+                    if old_name in user_data_email.get("categories", []):
+                        user_data_email["categories"].remove(old_name)
+                        user_data_email["categories"].append(category.name)
+                    if old_name in user_data_email.get("subcategories", {}):
+                        user_data_email["subcategories"][category.name] = user_data_email["subcategories"].pop(old_name)
+                    save_data(data)
             return redirect("manage_category")
     else:
         form = CategoryForm(instance=category)
@@ -248,26 +285,17 @@ def get_category_count(request):
     return JsonResponse({"count": count})
 
 # -------------------- Subcategory --------------------
-from django.shortcuts import render, redirect
-from django.http import JsonResponse
-from django.core.paginator import Paginator
-from django.conf import settings
-from django.core.exceptions import ValidationError
-import os, uuid, logging
-
-logger = logging.getLogger(__name__)
-
-# Assume load_data(), save_data(), validate_image() are already defined
-
 def manage_subcategory(request):
-    data = load_data()
     email = request.session.get("email")
-    if not email or email not in data['user_data']:
+    if not email:
         return redirect("login")
 
-    user_data_email = data['user_data'][email]
-    categories = user_data_email.get("categories", [])
+    categories = [cat.name for cat in Category.objects.all()]
+    data = load_data()
+    user_data_email = data['user_data'].get(email, {})
     subcategories = user_data_email.get("subcategories", {})
+
+    error = None
 
     if request.method == "POST":
         category = request.POST.get("category")
@@ -277,43 +305,48 @@ def manage_subcategory(request):
         description = request.POST.get("description")
         image = request.FILES.get("image")
 
-        if category and product_name and subcategory_name and price:
-            if category not in subcategories:
-                subcategories[category] = []
+        if not (category and product_name and subcategory_name and price):
+            error = "All required fields must be filled."
+        elif any(sc["name"] == product_name for sc in subcategories.get(category, [])):
+            error = f"A product named '{product_name}' already exists in category '{category}'."
+        else:
+            try:
+                relative_path = "/media/products/default.png"
+                if image:
+                    validate_image(image)
+                    image_dir = os.path.join(settings.MEDIA_ROOT, "products")
+                    os.makedirs(image_dir, exist_ok=True)
+                    ext = os.path.splitext(image.name)[1]
+                    unique_filename = f"{uuid.uuid4().hex}{ext}"
+                    image_path = os.path.join(image_dir, unique_filename)
+                    with open(image_path, "wb+") as dest:
+                        for chunk in image.chunks():
+                            dest.write(chunk)
+                    relative_path = f"/media/products/{unique_filename}"
 
-            if not any(sc["name"] == product_name for sc in subcategories[category]):
-                try:
-                    if image:
-                        validate_image(image)
-                        image_dir = os.path.join(settings.MEDIA_ROOT, "products")
-                        os.makedirs(image_dir, exist_ok=True)
-                        ext = os.path.splitext(image.name)[1]
-                        unique_filename = f"{uuid.uuid4().hex}{ext}"
-                        image_path = os.path.join(image_dir, unique_filename)
-                        with open(image_path, "wb+") as dest:
-                            for chunk in image.chunks():
-                                dest.write(chunk)
-                        relative_path = f"/media/products/{unique_filename}"
-                    else:
-                        relative_path = "/media/products/default.png"
-
-                    subcategories[category].append({
-                        "name": product_name,  # unique identifier
-                        "subcategory": subcategory_name,
-                        "price": float(price),
-                        "description": description or "",
-                        "image": relative_path,
-                        "category": category,
-                        "rating": 0
-                    })
-                    save_data(data)
-                except ValidationError as e:
-                    return render(request, "subcategory.html", {
-                        "categories": categories,
-                        "error": str(e),
-                        "page_obj": Paginator([], 5).get_page(1)
-                    })
-        return redirect("manage_subcategory")
+                if category not in subcategories:
+                    subcategories[category] = []
+                subcategories[category].append({
+                    "name": product_name,
+                    "subcategory": subcategory_name,
+                    "price": float(price),
+                    "description": description or "",
+                    "image": relative_path,
+                    "category": category,
+                    "rating": 0
+                })
+                save_data(data)
+                # Paginate to last page after add
+                all_subs = []
+                for cat, subs in subcategories.items():
+                    for sc in subs:
+                        sc["category"] = cat
+                        all_subs.append(sc)
+                paginator = Paginator(all_subs, 5)
+                last_page = paginator.num_pages
+                return redirect(f"{reverse('manage_subcategory')}?page={last_page}")
+            except ValidationError as e:
+                error = str(e)
 
     # Collect all subcategories for display
     all_subs = []
@@ -322,15 +355,24 @@ def manage_subcategory(request):
             sc["category"] = cat
             all_subs.append(sc)
 
+    # Apply pagination
     paginator = Paginator(all_subs, 5)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
+    # Prepare all_subcategories for empty state fallback
+    all_subcategories = all_subs if all_subs else []
+
+    # Update total count based on subcategories
+    total_count = len(all_subcategories)
+
     return render(request, "subcategory.html", {
         "categories": categories,
-        "page_obj": page_obj
+        "page_obj": page_obj,
+        "error": error,
+        "all_subcategories": all_subcategories,
+        "total_count": total_count
     })
-
 
 def delete_subcategory(request, category, name):
     data = load_data()
@@ -345,16 +387,15 @@ def delete_subcategory(request, category, name):
 
     return redirect("manage_subcategory")
 
-
-
 def edit_subcategory(request, cat_name, old_subcat_name):
-    data = load_data()
     email = request.session.get("email")
-    if not email or email not in data['user_data']:
+    if not email:
         return redirect("login")
 
-    user_data_email = data['user_data'][email]
-    categories = user_data_email.get("categories", [])
+    # Fetch categories from the Category model
+    categories = [cat.name for cat in Category.objects.all()]
+    data = load_data()
+    user_data_email = data['user_data'].get(email, {})
     subcategories = user_data_email.get("subcategories", {})
 
     current_subcat = None
@@ -422,8 +463,6 @@ def edit_subcategory(request, cat_name, old_subcat_name):
     # Fallback GET redirect
     return redirect("manage_subcategory")
 
-
-
 def search_subcategories(request):
     data = load_data()
     email = request.session.get("email")
@@ -455,7 +494,6 @@ def search_subcategories(request):
 
     return JsonResponse({"results": results})
 
-
 def get_subcategory_count(request):
     data = load_data()
     email = request.session.get("email")
@@ -465,7 +503,6 @@ def get_subcategory_count(request):
     subcategories = data['user_data'][email].get("subcategories", {})
     count = sum(len(subs) for subs in subcategories.values())
     return JsonResponse({"count": count})
-
 
 def update_subcategory_rating(request):
     data = load_data()
@@ -487,15 +524,15 @@ def update_subcategory_rating(request):
 
     return JsonResponse({"success": False})
 
-
 def add_subcategory(request):
-    data = load_data()
     email = request.session.get("email")
-    if not email or email not in data['user_data']:
+    if not email:
         return redirect("login")
 
-    user_data_email = data['user_data'][email]
-    categories = user_data_email.get("categories", [])
+    # Fetch categories from the Category model
+    categories = [cat.name for cat in Category.objects.all()]
+    data = load_data()
+    user_data_email = data['user_data'].get(email, {})
     subcategories = user_data_email.get("subcategories", {})
 
     if request.method == "POST":
@@ -506,41 +543,69 @@ def add_subcategory(request):
         description = request.POST.get("description")
         image = request.FILES.get("image")
 
-        if category and product_name and subcategory_name and price:
-            if category not in subcategories:
-                subcategories[category] = []
+        if not (category and product_name and subcategory_name and price):
+            return render(request, "subcategory.html", {
+                "categories": categories,
+                "error": "All required fields must be filled.",
+                "page_obj": Paginator([], 5).get_page(1)
+            })
 
-            if not any(sc["name"] == product_name for sc in subcategories[category]):
-                try:
-                    if image:
-                        validate_image(image)
-                        image_dir = os.path.join(settings.MEDIA_ROOT, "products")
-                        os.makedirs(image_dir, exist_ok=True)
-                        ext = os.path.splitext(image.name)[1]
-                        unique_filename = f"{uuid.uuid4().hex}{ext}"
-                        image_path = os.path.join(image_dir, unique_filename)
-                        with open(image_path, "wb+") as dest:
-                            for chunk in image.chunks():
-                                dest.write(chunk)
-                        relative_path = f"/media/products/{unique_filename}"
-                    else:
-                        relative_path = "/media/products/default.png"
+        if category not in subcategories:
+            subcategories[category] = []
 
-                    subcategories[category].append({
-                        "name": product_name,
-                        "subcategory": subcategory_name,
-                        "price": float(price),
-                        "description": description or "",
-                        "image": relative_path,
-                        "category": category,
-                        "rating": 0
-                    })
-                    save_data(data)
-                except ValidationError as e:
-                    return redirect("manage_subcategory")
+        if any(sc["name"] == product_name for sc in subcategories[category]):
+            return render(request, "subcategory.html", {
+                "categories": categories,
+                "error": f"A product named '{product_name}' already exists in category '{category}'.",
+                "page_obj": Paginator([], 5).get_page(1)
+            })
+
+        try:
+            if image:
+                validate_image(image)
+                image_dir = os.path.join(settings.MEDIA_ROOT, "products")
+                os.makedirs(image_dir, exist_ok=True)
+                ext = os.path.splitext(image.name)[1]
+                unique_filename = f"{uuid.uuid4().hex}{ext}"
+                image_path = os.path.join(image_dir, unique_filename)
+                with open(image_path, "wb+") as dest:
+                    for chunk in image.chunks():
+                        dest.write(chunk)
+                relative_path = f"/media/products/{unique_filename}"
+            else:
+                relative_path = "/media/products/default.png"
+
+            subcategories[category].append({
+                "name": product_name,
+                "subcategory": subcategory_name,
+                "price": float(price),
+                "description": description or "",
+                "image": relative_path,
+                "category": category,
+                "rating": 0
+            })
+            save_data(data)
+
+            # Calculate the last page
+            all_subs = []
+            for cat, subs in subcategories.items():
+                for sc in subs:
+                    sc["category"] = cat
+                    all_subs.append(sc)
+            paginator = Paginator(all_subs, 5)
+            last_page = paginator.num_pages
+
+            # Redirect to manage_subcategory with the page query parameter
+            return redirect(f"{reverse('manage_subcategory')}?page={last_page}")
+
+        except ValidationError as e:
+            return render(request, "subcategory.html", {
+                "categories": categories,
+                "error": str(e),
+                "page_obj": Paginator([], 5).get_page(1)
+            })
 
     return redirect("manage_subcategory")
-
 
 # -------------------- Products --------------------
 def manage_products(request):
@@ -582,8 +647,6 @@ def manage_products(request):
     return render(request, "products.html", {
         "products": enriched_products
     })
-
-
 
 def delete_product(request, product_name):
     data = load_data()

@@ -1,3 +1,4 @@
+<!-- subcategory.html -->
 {% extends 'base.html' %}
 {% load static %}
 {% block content %}
@@ -184,6 +185,16 @@ body {
   background-color: #f8fafc;
   transform: translateY(-2px);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.subcat-name {
+  color: var(--primary);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.subcat-name:hover {
+  color: var(--primary-dark);
 }
 
 /* Product Image */
@@ -429,6 +440,32 @@ body {
   color: #a0aec0;
 }
 
+/* Popup Modal for Subcategory Details */
+#subcatPopupModal .modal-dialog {
+  max-width: 500px;
+}
+
+#subcatPopupModal .modal-body {
+  text-align: center;
+}
+
+#subcatPopupModal .modal-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+}
+
+#subcatPopupModal .modal-body h5 {
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+}
+
+#subcatPopupModal .modal-body p {
+  color: var(--dark);
+  margin-bottom: 0.3rem;
+}
+
 /* Responsive */
 @media (max-width: 992px) {
   .filter-sort-container {
@@ -525,7 +562,7 @@ body {
     <div class="col-lg-4">
       <div class="control-card text-center">
         <h5><i class="fas fa-chart-pie"></i> Statistics</h5>
-        <span class="total-badge"><i class="fas fa-cube me-2"></i>Total: <span id="subcategoryCount">0</span></span>
+        <span class="total-badge"><i class="fas fa-cube me-2"></i>Total: <span id="subcategoryCount">{{ page_obj.paginator.count }}</span></span>
       </div>
     </div>
   </div>
@@ -569,7 +606,7 @@ body {
   <!-- Subcategories Table -->
   <div class="table-container">
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
+      <table class="table table-hover align-middle mb-0" id="subcategoryTable">
         <thead class="table-header">
           <tr>
             <th>ID</th>
@@ -598,7 +635,11 @@ body {
                      class="product-img" alt="{{ subcat.name }}">
               </td>
               <td data-label="Category"><span class="badge bg-primary">{{ subcat.category }}</span></td>
-              <td data-label="Subcategory"><span class="badge bg-secondary">{{ subcat.subcategory }}</span></td>
+              <td data-label="Subcategory"><span class="subcat-name" data-bs-toggle="modal" data-bs-target="#subcatPopupModal" 
+                    data-image="{{ subcat.image|default:'/media/products/default.png' }}"
+                    data-category="{{ subcat.category }}"
+                    data-subcategory="{{ subcat.subcategory }}"
+                    data-name="{{ subcat.name }}">{{ subcat.subcategory }}</span></td>
               <td data-label="Product Name" class="fw-bold">{{ subcat.name }}</td>
               <td data-label="Price" class="fw-bold text-primary">₹ {{ subcat.price }}</td>
               <td data-label="Description">
@@ -625,10 +666,7 @@ body {
                 <div class="empty-state">
                   <i class="fas fa-inbox"></i>
                   <h4>No subcategories found</h4>
-                  <p>Get started by adding your first subcategory</p>
-                  <button class="btn btn-add mt-2" data-bs-toggle="modal" data-bs-target="#addProductModal">
-                    <i class="fas fa-plus"></i> Add Subcategory
-                  </button>
+                  <p>No subcategories or products exist in the system.</p>
                 </div>
               </td>
             </tr>
@@ -785,6 +823,27 @@ body {
       </div>
     </div>
   </div>
+
+  <!-- Popup Modal for Subcategory Details -->
+  <div class="modal fade" id="subcatPopupModal" tabindex="-1" aria-labelledby="subcatPopupModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="subcatPopupModalLabel">Subcategory Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <img id="popupImage" src="" alt="Product Image">
+          <h5 id="popupCategory">Category: </h5>
+          <p id="popupSubcategory">Subcategory: </p>
+          <p id="popupName">Product Name: </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -793,16 +852,15 @@ document.addEventListener("DOMContentLoaded", function() {
   const resultsList = document.getElementById("searchDropdown");
   const totalCount = document.getElementById("subcategoryCount");
   const form = document.getElementById("editSubcatForm");
+  const subcatPopupModal = document.getElementById("subcatPopupModal");
 
   // Load total count
-  fetch("{% url 'get_subcategory_count' %}")
-    .then(res => res.json())
-    .then(data => totalCount.innerText = data.count);
+  totalCount.innerText = "{{ page_obj.paginator.count }}";
 
   // Live search
   searchInput.addEventListener("keyup", function() {
     const query = this.value.trim();
-    if(query.length < 2) { 
+    if (query.length < 2) { 
       resultsList.style.display = "none"; 
       return; 
     }
@@ -811,7 +869,7 @@ document.addEventListener("DOMContentLoaded", function() {
       .then(res => res.json())
       .then(data => {
         resultsList.innerHTML = "";
-        if(data.results.length === 0) {
+        if (data.results.length === 0) {
           resultsList.innerHTML = `
             <li class="list-group-item text-center py-4">
               <i class="fas fa-search fa-2x mb-2 text-muted"></i>
@@ -854,7 +912,6 @@ document.addEventListener("DOMContentLoaded", function() {
             </div>
           `;
 
-          // Edit button event to fill modal and show
           li.querySelector(".edit-dropdown-btn").addEventListener("click", function() {
             const btn = this;
             document.getElementById("editOldCategory").value = btn.dataset.category;
@@ -910,8 +967,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
     let rowArray = Array.from(rows);
     rowArray.forEach(row => {
-      const category = row.dataset.category.trim().toLowerCase();
-      if (!filterValue || category === filterValue.trim()) {
+      const category = row.dataset.category ? row.dataset.category.trim().toLowerCase() : '';
+      if (!filterValue || category === filterValue) {
         row.style.display = "";
       } else {
         row.style.display = "none";
@@ -937,6 +994,21 @@ document.addEventListener("DOMContentLoaded", function() {
     visibleRows.forEach(row => tbody.appendChild(row));
   });
 
+  // Popup Modal for Subcategory Details
+  document.querySelectorAll(".subcat-name").forEach(subcat => {
+    subcat.addEventListener("click", function() {
+      const image = this.dataset.image;
+      const category = this.dataset.category;
+      const subcategory = this.dataset.subcategory;
+      const name = this.closest("tr").dataset.name;
+
+      document.getElementById("popupImage").src = image;
+      document.getElementById("popupCategory").textContent = `Category: ${category}`;
+      document.getElementById("popupSubcategory").textContent = `Subcategory: ${subcategory}`;
+      document.getElementById("popupName").textContent = `Product Name: ${name}`;
+    });
+  });
+
   // Hide dropdown when clicking outside
   document.addEventListener("click", function(event) {
     if (!resultsList.contains(event.target) && event.target !== searchInput) {
@@ -944,5 +1016,5 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   });
 });
-</script>
+</script>ZSYY
 {% endblock %}
