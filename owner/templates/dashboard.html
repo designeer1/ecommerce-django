@@ -1,15 +1,57 @@
-{% extends "base.html" %}
-
+{% extends 'base.html' %}
 {% block content %}
-<div class="text-center">
-  <h1 class="mb-4">Welcome to TaskPro</h1>
-  <p class="lead">Your simple e-cart / task management starter.</p>
+<div class="dashboard-header">
+  <h1>TaskPro Dashboard</h1>
+  <p>Manage your categories, subcategories, and products from one central location</p>
+</div>
+
+<div class="row g-4">
+  <!-- Categories Card -->
+  <div class="col-md-4">
+    <div class="dashboard-card card">
+      <div class="card-body text-center p-4">
+        <div class="card-icon text-warning">
+          <i class="bi bi-tags"></i>
+        </div>
+        <h3 class="card-title">Categories</h3>
+        <p class="card-text">Organize your products into categories for better management and navigation.</p>
+        <a href="{% url 'manage_category' %}" class="btn btn-warning nav-btn">
+          <i class="bi bi-arrow-right me-2"></i> Manage Categories
+        </a>
+      </div>
+    </div>
+  </div>
   
-  {% if request.session.username %}
-    <a href="{% url 'manage_category' %}" class="btn btn-warning m-2">Manage Categories</a>
-    <a href="{% url 'manage_subcategory' %}" class="btn btn-info m-2">Manage Subcategories</a>
-  {% else %}
-    <p>Please <a href="{% url 'login' %}" class="btn btn-success">Login</a> or <a href="{% url 'register' %}" class="btn btn-primary">Register</a> to manage categories and subcategories.</p>
-  {% endif %}
+  <!-- Subcategories Card -->
+  <div class="col-md-4">
+    <div class="dashboard-card card">
+      <div class="card-body text-center p-4">
+        <div class="card-icon text-info">
+          <i class="bi bi-diagram-3"></i>
+        </div>
+        <h3 class="card-title">Subcategories</h3>
+        <p class="card-text">Create subcategories to further organize your products within each category.</p>
+        <a href="{% url 'manage_subcategory' %}" class="btn btn-info nav-btn">
+          <i class="bi bi-arrow-right me-2"></i> Manage Subcategories
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Products Card -->
+  <div class="col-md-4">
+    <div class="dashboard-card card">
+      <div class="card-body text-center p-4">
+        <div class="card-icon text-primary">
+          <i class="bi bi-box-seam"></i>
+        </div>
+        <h3 class="card-title">Products</h3>
+        <p class="card-text">Add, edit, and manage all your products in one convenient location.</p>
+        <a href="{% url 'manage_products' %}" class="btn btn-primary nav-btn">
+          <i class="bi bi-arrow-right me-2"></i> Manage Products
+        </a>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}

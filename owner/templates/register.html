@@ -1,21 +1,38 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Register</h2>
-<form method="post">
-  {% csrf_token %}
-  <div class="mb-3">
-    <label>Username</label>
-    <input type="text" name="username" class="form-control" required>
+<div class="auth-container">
+  <div class="auth-header">
+    <h2>Create Account</h2>
+    <p>Join TaskPro to get started</p>
   </div>
-  <div class="mb-3">
-    <label>Email</label>
-    <input type="email" name="email" class="form-control" required>
+  
+  <form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label class="form-label">Username</label>
+      <input type="text" name="username" class="form-control" required placeholder="Choose a username">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Email</label>
+      <input type="email" name="email" class="form-control" required placeholder="Enter your email">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Password</label>
+      <input type="password" name="password" class="form-control" required placeholder="Create a password">
+    </div>
+    <button type="submit" class="btn btn-primary auth-btn">
+      <i class="bi bi-person-plus me-2"></i> Register
+    </button>
+  </form>
+  
+  {% if msg %}
+  <div class="alert alert-danger mt-3" role="alert">
+    <i class="bi bi-exclamation-circle me-2"></i> {{ msg }}
   </div>
-  <div class="mb-3">
-    <label>Password</label>
-    <input type="password" name="password" class="form-control" required>
+  {% endif %}
+  
+  <div class="text-center mt-4">
+    <p class="mb-0">Already have an account? <a href="{% url 'login' %}" class="text-decoration-none fw-semibold">Login here</a></p>
   </div>
-  <button type="submit" class="btn btn-primary">Register</button>
-</form>
-<p class="text-danger mt-2">{{ msg }}</p>
+</div>
 {% endblock %}
