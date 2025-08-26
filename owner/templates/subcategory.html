@@ -1,10 +1,8 @@
 {% extends 'base.html' %}
 {% load static %}
-
 {% block content %}
 <div class="container py-5">
   <h2 class="mb-4 text-center">Manage Subcategories</h2>
-
   <!-- Top Row: Add button + Search + Count -->
   <div class="d-flex justify-content-between align-items-center mb-3">
     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
@@ -13,11 +11,36 @@
     <div class="w-50 position-relative">
       <input type="text" id="searchSubcatInput" class="form-control" placeholder="Search subcategories...">
       <ul id="searchDropdown" class="list-group position-absolute w-100 shadow-sm" 
-          style="z-index:1000; display:none; max-height:250px; overflow-y:auto;"></ul>
+          style="z-index:1050; display:none; max-height:280px; overflow-y:auto; border-radius:8px; padding:0.5rem; background:#fff; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"></ul>
     </div>
     <span class="badge bg-dark p-2">Total: <span id="subcategoryCount">0</span></span>
   </div>
-
+  <!-- Filter & Sort Controls -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <!-- Filter by Category -->
+    <div class="d-flex align-items-center">
+      <label for="filterCategory" class="me-2 fw-bold">Filter:</label>
+      <select id="filterCategory" class="form-select" style="width:200px;">
+        <option value="">All Categories</option>
+        {% for cat in categories %}
+          <option value="{{ cat }}">{{ cat }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <!-- Sort Dropdown -->
+    <div class="d-flex align-items-center">
+      <label for="sortSelect" class="me-2 fw-bold">Sort:</label>
+      <select id="sortSelect" class="form-select" style="width:200px;">
+        <option value="">Default</option>
+        <option value="name_asc">Name ↑</option>
+        <option value="name_desc">Name ↓</option>
+        <option value="price_asc">Price ↑</option>
+        <option value="price_desc">Price ↓</option>
+      </select>
+    </div>
+    <!-- Apply Button -->
+    <button id="applyFilterSort" class="btn btn-outline-primary ms-2">Apply</button>
+  </div>
   <!-- Subcategories Table -->
   <div id="subcategoryTable" class="table-responsive">
     <table class="table table-bordered align-middle text-center shadow-sm">
@@ -71,7 +94,6 @@
       </tbody>
     </table>
   </div>
-
   <!-- Pagination -->
   {% if page_obj.has_other_pages %}
     <nav aria-label="Page navigation">
@@ -96,7 +118,6 @@
       </ul>
     </nav>
   {% endif %}
-
   <!-- Add Subcategory/Product Modal -->
   <div class="modal fade" id="addProductModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
@@ -145,7 +166,6 @@
       </div>
     </div>
   </div>
-
   <!-- Edit Subcategory/Product Modal -->
   <div class="modal fade" id="editSubcatModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
@@ -197,21 +217,39 @@
       </div>
     </div>
   </div>
-
 </div>
-
 <style>
 .description-text { 
   display:inline-block; max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   color:#0d6efd; font-style:italic; 
 }
 .description-text:hover { color:#005cbf; cursor:pointer; }
-#searchDropdown li { cursor:pointer; }
-#searchDropdown li:hover { background:#f8f9fa; }
+#searchDropdown li {
+  cursor: default;
+  background: #fff;
+  margin-bottom: 8px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+}
+#searchDropdown li:hover { background:#f0f8ff; }
+#searchDropdown p.text-truncate {
+  color:#0d6efd; 
+  font-style:italic; 
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#searchDropdown {
+  max-height: 280px;
+  overflow-y: auto;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  padding: 0.5rem;
+  z-index: 1050;
+}
 .dropdown-link { color:#0d6efd; font-weight:bold; text-decoration:none; }
 .dropdown-link:hover { color:#0056b3; text-decoration:underline; }
 </style>
-
 <script>
 document.addEventListener("DOMContentLoaded", function() {
   const searchInput = document.getElementById("searchSubcatInput");
@@ -227,8 +265,11 @@ document.addEventListener("DOMContentLoaded", function() {
   // Live search
   searchInput.addEventListener("keyup", function() {
     const query = this.value.trim();
-    if(query.length < 2) { resultsList.style.display = "none"; return; }
-    fetch("{% url 'search_subcategories' %}?q=" + query)
+    if(query.length < 2) { 
+      resultsList.style.display = "none"; 
+      return; 
+    }
+    fetch("{% url 'search_subcategories' %}?q=" + encodeURIComponent(query))
       .then(res => res.json())
       .then(data => {
         resultsList.innerHTML = "";
@@ -242,18 +283,65 @@ document.addEventListener("DOMContentLoaded", function() {
         }
         data.results.forEach(sc => {
           const li = document.createElement("li");
-          li.className = "list-group-item d-flex align-items-center";
+          li.className = "list-group-item p-3 shadow-sm my-2";
+          li.style.borderRadius = "8px";
           li.innerHTML = `
-            <img src="${sc.image}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;margin-right:10px;">
-            <span>${sc.category} → ${sc.subcategory}</span>
+            <div class="d-flex align-items-center">
+              <img src="${sc.image || '/media/products/default.png'}" alt="${sc.name}"
+                style="width:60px; height:60px; object-fit:cover; border-radius:6px; margin-right:12px;">
+              <div class="flex-grow-1">
+                <h6 class="mb-1">${sc.category} → ${sc.subcategory}</h6>
+                <p class="mb-1 fw-bold">${sc.name} - ₹${parseFloat(sc.price).toFixed(2)}</p>
+                <p class="mb-2 text-truncate" style="max-width:300px;" title="${sc.description || 'No description'}">
+                  ${sc.description ? sc.description.substring(0, 100) : 'No description'}
+                </p>
+                <div>
+                  <button class="btn btn-warning btn-sm me-1 edit-dropdown-btn"
+                    data-category="${sc.category}" data-name="${sc.name}"
+                    data-subcategory="${sc.subcategory}"
+                    data-price="${sc.price}"
+                    data-description="${sc.description || ''}"
+                    data-image="${sc.image || '/media/products/default.png'}"
+                    >
+                    Edit
+                  </button>
+                  <a href="/owner/subcategories/delete/${encodeURIComponent(sc.category)}/${encodeURIComponent(sc.name)}"
+                    class="btn btn-danger btn-sm"
+                    onclick="return confirm('Delete ${sc.name}?');">
+                    Delete
+                  </a>
+                </div>
+              </div>
+            </div>
           `;
+
+          // Edit button event to fill modal and show
+          li.querySelector(".edit-dropdown-btn").addEventListener("click", function() {
+            const btn = this;
+            document.getElementById("editOldCategory").value = btn.dataset.category;
+            document.getElementById("editOldName").value = btn.dataset.name;
+            document.getElementById("editCategory").value = btn.dataset.category;
+            document.getElementById("editSubcategory").value = btn.dataset.subcategory || '';
+            document.getElementById("editName").value = btn.dataset.name;
+            document.getElementById("editPrice").value = btn.dataset.price;
+            document.getElementById("editDescription").value = btn.dataset.description || '';
+            document.getElementById("currentImage").src = btn.dataset.image || '/media/products/default.png';
+
+            form.action = `/owner/subcategories/edit/${encodeURIComponent(btn.dataset.category)}/${encodeURIComponent(btn.dataset.name)}/`;
+
+            const modal = new bootstrap.Modal(document.getElementById("editSubcatModal"));
+            modal.show();
+
+            resultsList.style.display = "none";
+          });
+
           resultsList.appendChild(li);
         });
         resultsList.style.display = "block";
       });
   });
 
-  // Edit Button → Prefill Modal
+  // Table Edit Button → Prefill Modal
   document.querySelectorAll(".edit-btn").forEach(btn => {
     btn.addEventListener("click", function() {
       const tr = btn.closest("tr");
@@ -265,11 +353,48 @@ document.addEventListener("DOMContentLoaded", function() {
       document.getElementById("editPrice").value = tr.dataset.price;
       document.getElementById("editDescription").value = tr.dataset.description;
       document.getElementById("currentImage").src = tr.dataset.image;
-
       form.action = `/owner/subcategories/edit/${encodeURIComponent(tr.dataset.category)}/${encodeURIComponent(tr.dataset.name)}/`;
       const modal = new bootstrap.Modal(document.getElementById("editSubcatModal"));
       modal.show();
     });
+  });
+
+  // Filter + Sort
+  const filterCategory = document.getElementById("filterCategory");
+  const sortSelect = document.getElementById("sortSelect");
+  const applyBtn = document.getElementById("applyFilterSort");
+  applyBtn.addEventListener("click", function() {
+    const rows = document.querySelectorAll("#subcategoryTable tbody tr");
+    const filterValue = filterCategory.value.toLowerCase();
+    const sortValue = sortSelect.value;
+
+    let rowArray = Array.from(rows);
+    rowArray.forEach(row => {
+      const category = row.dataset.category.trim().toLowerCase();
+      if (!filterValue || category === filterValue.trim()) {
+        row.style.display = "";
+      } else {
+        row.style.display = "none";
+      }
+    });
+
+    let visibleRows = rowArray.filter(r => r.style.display !== "none");
+    if (sortValue === "name_asc" || sortValue === "name_desc") {
+      visibleRows.sort((a, b) => {
+        let nameA = a.dataset.name.toLowerCase();
+        let nameB = b.dataset.name.toLowerCase();
+        return sortValue === "name_asc" ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+      });
+    } else if (sortValue === "price_asc" || sortValue === "price_desc") {
+      visibleRows.sort((a, b) => {
+        let priceA = parseFloat(a.dataset.price);
+        let priceB = parseFloat(b.dataset.price);
+        return sortValue === "price_asc" ? priceA - priceB : priceB - priceA;
+      });
+    }
+
+    const tbody = document.querySelector("#subcategoryTable tbody");
+    visibleRows.forEach(row => tbody.appendChild(row));
   });
 });
 </script>
