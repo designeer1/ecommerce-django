@@ -14,7 +14,8 @@
         <p class="card-text text-primary fw-bold">₹ {{ product.price }}</p>
         <div class="d-flex justify-content-center align-items-center mb-2">
           <a href="{% url 'decrement_cart_item' product.name %}" class="btn btn-sm btn-outline-danger me-2">−</a>
-          <span class="fw-bold">{{ product.quantity }}</span>
+          <span class="fw-bold" style="color: white;">{{ product.quantity }}</span>
+
           <a href="{% url 'increment_cart_item' product.name %}" class="btn btn-sm btn-outline-success ms-2">+</a>
         </div>
         <a href="{% url 'remove_from_cart' product.name %}" class="btn btn-danger btn-sm">
