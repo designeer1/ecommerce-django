@@ -286,6 +286,7 @@ def get_category_count(request):
 
 # -------------------- Subcategory --------------------
 # views.py - Updated manage_subcategory view
+# views.py - Update the manage_subcategory view
 def manage_subcategory(request):
     email = request.session.get("email")
     if not email:
@@ -297,7 +298,8 @@ def manage_subcategory(request):
     user_data_email = data['user_data'].get(email, {})
     subcategories = user_data_email.get("subcategories", {})
 
-    error = None
+    error = request.GET.get('error', '')
+    success = request.GET.get('success', '')
 
     if request.method == "POST":
         category = request.POST.get("category")
@@ -308,47 +310,46 @@ def manage_subcategory(request):
         image = request.FILES.get("image")
 
         if not (category and product_name and subcategory_name and price):
-            error = "All required fields must be filled."
-        elif any(sc["name"] == product_name for sc in subcategories.get(category, [])):
-            error = f"A product named '{product_name}' already exists in category '{category}'."
-        else:
-            try:
-                relative_path = "/media/products/default.png"
-                if image:
-                    validate_image(image)
-                    image_dir = os.path.join(settings.MEDIA_ROOT, "products")
-                    os.makedirs(image_dir, exist_ok=True)
-                    ext = os.path.splitext(image.name)[1]
-                    unique_filename = f"{uuid.uuid4().hex}{ext}"
-                    image_path = os.path.join(image_dir, unique_filename)
-                    with open(image_path, "wb+") as dest:
-                        for chunk in image.chunks():
-                            dest.write(chunk)
-                    relative_path = f"/media/products/{unique_filename}"
+            return redirect(reverse('manage_subcategory') + '?error=' + "All required fields must be filled.")
 
-                if category not in subcategories:
-                    subcategories[category] = []
-                subcategories[category].append({
-                    "name": product_name,
-                    "subcategory": subcategory_name,
-                    "price": float(price),
-                    "description": description or "",
-                    "image": relative_path,
-                    "category": category,
-                    "rating": 0
-                })
-                save_data(data)
-                # Paginate to last page after add
-                all_subs = []
-                for cat, subs in subcategories.items():
-                    for sc in subs:
-                        sc["category"] = cat
-                        all_subs.append(sc)
-                paginator = Paginator(all_subs, 5)
-                last_page = paginator.num_pages
-                return redirect(f"{reverse('manage_subcategory')}?page={last_page}")
-            except ValidationError as e:
-                error = str(e)
+        # Check if product already exists
+        if category in subcategories and any(sc["name"] == product_name for sc in subcategories[category]):
+            return redirect(reverse('manage_subcategory') + '?error=' + f"A product named '{product_name}' already exists in category '{category}'.")
+
+        try:
+            relative_path = "/media/products/default.png"
+            if image:
+                validate_image(image)
+                image_dir = os.path.join(settings.MEDIA_ROOT, "products")
+                os.makedirs(image_dir, exist_ok=True)
+                ext = os.path.splitext(image.name)[1]
+                unique_filename = f"{uuid.uuid4().hex}{ext}"
+                image_path = os.path.join(image_dir, unique_filename)
+                with open(image_path, "wb+") as dest:
+                    for chunk in image.chunks():
+                        dest.write(chunk)
+                relative_path = f"/media/products/{unique_filename}"
+
+            if category not in subcategories:
+                subcategories[category] = []
+                
+            subcategories[category].append({
+                "name": product_name,
+                "subcategory": subcategory_name,
+                "price": float(price),
+                "description": description or "",
+                "image": relative_path,
+                "category": category,
+                "rating": 0
+            })
+            
+            save_data(data)
+            
+            # Redirect back to manage_subcategory with success message
+            return redirect(reverse('manage_subcategory') + '?success=Product added successfully')
+
+        except ValidationError as e:
+            return redirect(reverse('manage_subcategory') + '?error=' + str(e))
 
     # Collect all subcategories for display
     all_subs = []
@@ -399,6 +400,7 @@ def manage_subcategory(request):
         "categories": categories,
         "page_obj": page_obj,
         "error": error,
+        "success": success,
         "all_subcategories": all_subcategories,
         "total_count": total_count,
         "current_category_filter": category_filter,
@@ -556,6 +558,7 @@ def update_subcategory_rating(request):
 
     return JsonResponse({"success": False})
 
+# views.py - Update the add_subcategory view
 def add_subcategory(request):
     email = request.session.get("email")
     if not email:
@@ -576,23 +579,14 @@ def add_subcategory(request):
         image = request.FILES.get("image")
 
         if not (category and product_name and subcategory_name and price):
-            return render(request, "subcategory.html", {
-                "categories": categories,
-                "error": "All required fields must be filled.",
-                "page_obj": Paginator([], 5).get_page(1)
-            })
+            return redirect(reverse('manage_subcategory') + '?error=' + "All required fields must be filled.")
 
-        if category not in subcategories:
-            subcategories[category] = []
-
-        if any(sc["name"] == product_name for sc in subcategories[category]):
-            return render(request, "subcategory.html", {
-                "categories": categories,
-                "error": f"A product named '{product_name}' already exists in category '{category}'.",
-                "page_obj": Paginator([], 5).get_page(1)
-            })
+        # Check if product already exists
+        if category in subcategories and any(sc["name"] == product_name for sc in subcategories[category]):
+            return redirect(reverse('manage_subcategory') + '?error=' + f"A product named '{product_name}' already exists in category '{category}'.")
 
         try:
+            relative_path = "/media/products/default.png"
             if image:
                 validate_image(image)
                 image_dir = os.path.join(settings.MEDIA_ROOT, "products")
@@ -604,9 +598,11 @@ def add_subcategory(request):
                     for chunk in image.chunks():
                         dest.write(chunk)
                 relative_path = f"/media/products/{unique_filename}"
-            else:
-                relative_path = "/media/products/default.png"
 
+            # Add to subcategories in JSON data
+            if category not in subcategories:
+                subcategories[category] = []
+                
             subcategories[category].append({
                 "name": product_name,
                 "subcategory": subcategory_name,
@@ -616,29 +612,17 @@ def add_subcategory(request):
                 "category": category,
                 "rating": 0
             })
+            
+            # Save the updated data to JSON
             save_data(data)
-
-            # Calculate the last page
-            all_subs = []
-            for cat, subs in subcategories.items():
-                for sc in subs:
-                    sc["category"] = cat
-                    all_subs.append(sc)
-            paginator = Paginator(all_subs, 5)
-            last_page = paginator.num_pages
-
-            # Redirect to manage_subcategory with the page query parameter
-            return redirect(f"{reverse('manage_subcategory')}?page={last_page}")
+            
+            # Redirect back to manage_subcategory with success message
+            return redirect(reverse('manage_subcategory') + '?success=Product added successfully')
 
         except ValidationError as e:
-            return render(request, "subcategory.html", {
-                "categories": categories,
-                "error": str(e),
-                "page_obj": Paginator([], 5).get_page(1)
-            })
+            return redirect(reverse('manage_subcategory') + '?error=' + str(e))
 
     return redirect("manage_subcategory")
-
 # -------------------- Products --------------------
 def manage_products(request):
     data = load_data()

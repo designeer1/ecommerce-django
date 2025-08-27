@@ -539,12 +539,6 @@ body {
   animation-delay: calc(var(--delay, 0) * 0.05s);
 }
 </style>
-
-
-
-
-
-
 <div class="container py-4">
   <!-- Page Header -->
   <div class="page-header text-center">
@@ -739,6 +733,7 @@ body {
   <div class="modal fade" id="addProductModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
+        <!-- Change this line in your HTML -->
         <form method="post" enctype="multipart/form-data" action="{% url 'add_subcategory' %}">
           {% csrf_token %}
           <div class="modal-header">
