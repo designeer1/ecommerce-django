@@ -143,6 +143,33 @@
       transform: translateY(-3px);
     }
     
+    /* Profile dropdown */
+    .dropdown-menu {
+      border-radius: 10px;
+      border: none;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      padding: 0.5rem;
+    }
+    
+    .dropdown-item {
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      transition: all 0.2s;
+    }
+    
+    .dropdown-item:hover {
+      background-color: #f8f9fa;
+    }
+    
+    .dropdown-item.logout {
+      color: #dc3545;
+    }
+    
+    .dropdown-item.logout:hover {
+      background-color: #dc3545;
+      color: white;
+    }
+    
     /* Content area */
     .content-wrapper {
       padding: 40px 0;
@@ -272,6 +299,11 @@
         margin: 1rem;
         padding: 1.5rem;
       }
+      
+      .dropdown-menu {
+        margin-top: 0.5rem;
+        width: 100%;
+      }
     }
   </style>
 </head>
@@ -292,24 +324,31 @@
 
     <!-- Navigation Items -->
     <div class="collapse navbar-collapse" id="navbarContent">
-      <div class="d-flex align-items-center ms-lg-auto">
-        <!-- If user logged in -->
+      <div class="navbar-nav ms-auto align-items-lg-center">
         {% if request.session.username %}
-          <div class="btn-group-responsive d-flex flex-column flex-lg-row">
-            <a href="{% url 'dashboard' %}" class="btn btn-primary nav-btn">
-              <i class="bi bi-house me-1"></i> Dashboard
-            </a>
-            <a href="{% url 'logout' %}" class="btn btn-danger nav-btn">
-              <i class="bi bi-box-arrow-right me-1"></i> Logout
-            </a>
-            <a href="#" class="user-btn ms-lg-2 mt-2 mt-lg-0">
+          <!-- If logged in -->
+          <a href="{% url 'dashboard' %}" class="btn btn-primary nav-btn me-2">
+            <i class="bi bi-house me-1"></i> Dashboard
+          </a>
+          
+          <!-- Profile dropdown with logout -->
+          <div class="dropdown ms-2">
+            <a class="user-btn dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
               <i class="bi bi-person-circle"></i>
             </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><span class="dropdown-item-text">Hello, {{ request.session.username }}</span></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Profile</a></li>
+              <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Settings</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item logout" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+            </ul>
           </div>
         {% else %}
           <!-- If not logged in -->
           <div class="btn-group-responsive d-flex flex-column flex-lg-row">
-            <a href="{% url 'login' %}" class="btn btn-success nav-btn">
+            <a href="{% url 'login' %}" class="btn btn-success nav-btn me-2">
               <i class="bi bi-box-arrow-in-right me-1"></i> Login
             </a>
             <a href="{% url 'register' %}" class="btn btn-primary nav-btn">
@@ -326,6 +365,10 @@
 <div class="container content-wrapper">
   {% block content %}
     <!-- This will be replaced by the specific page content -->
+    <div class="text-center py-5">
+      <h1>Welcome to TaskPro</h1>
+      <p class="lead">Your personal task management solution</p>
+    </div>
   {% endblock %}
 </div>
 
