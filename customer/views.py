@@ -3,13 +3,14 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.urls import reverse
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
 from pathlib import Path
 import json
 import razorpay
 from django.conf import settings
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
+from .models import CustomerProfile
 
 DATA_FILE = Path(__file__).resolve().parent.parent / "owner" / "data.json"
 
@@ -124,15 +125,28 @@ def register_view(request):
         username = request.POST.get("username")
         password = request.POST.get("password")
         confirm_password = request.POST.get("confirm_password")
+        profile_picture = request.FILES.get('profile_picture')
+        
         if password != confirm_password:
             messages.error(request, "Passwords do not match")
             return redirect("customer_register")
+            
         if User.objects.filter(username=username).exists():
             messages.error(request, "Username already taken")
             return redirect("customer_register")
-        User.objects.create_user(username=username, password=password)
+            
+        # Create user
+        user = User.objects.create_user(username=username, password=password)
+        
+        # Create profile with picture
+        profile = CustomerProfile.objects.create(user=user)
+        if profile_picture:
+            profile.profile_picture = profile_picture
+            profile.save()
+        
         messages.success(request, "Account created successfully! Please login.")
         return redirect("customer_login")
+        
     return render(request, "customer/register.html", {"cart_count": len(request.session.get("cart", []))})
 
 def logout_view(request):
@@ -341,8 +355,6 @@ def decrement_cart_item(request, product_name):
     request.session["new_product_added"] = None
     request.session.modified = True
     return HttpResponseRedirect(reverse("customer_cart"))
-
-from django.http import JsonResponse
 
 def checkout_address(request):
     cart = request.session.get("cart", [])
