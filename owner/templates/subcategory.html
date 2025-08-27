@@ -734,7 +734,7 @@ body {
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <!-- Change this line in your HTML -->
-        <form method="post" enctype="multipart/form-data" action="{% url 'add_subcategory' %}">
+      <form method="post" enctype="multipart/form-data" action="{% url 'add_subcategory' %}">
           {% csrf_token %}
           <div class="modal-header">
             <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Add Subcategory/Product</h5>
