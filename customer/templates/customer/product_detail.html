@@ -1,11 +1,14 @@
 {% extends "customer/base.html" %}
+{% load static %}
 
 {% block content %}
-<div class="container">
+
+<!-- 🔹 Product Detail Section -->
+<div class="container py-5">
   <div class="row">
     <!-- Product Image -->
-    <div class="col-md-5">
-      <div class="card mb-4">
+    <div class="col-md-6">
+      <div class="card hackerrank-card mb-4">
         <div class="card-img-top-container">
           <img src="{{ product.image_path }}" alt="{{ product.name }}" class="img-fluid">
         </div>
@@ -13,64 +16,275 @@
     </div>
 
     <!-- Product Details -->
-    <div class="col-md-7">
-      <h2>{{ product.name }}</h2>
-      <h4 class="text-success">₹ {{ product.price }}</h4>
-
-      <!-- Dynamic Green Star Rating -->
-      <div class="mb-3">
-        {% for i in "12345" %}
-          {% if forloop.counter <= product.rating %}
-            <i class="bi bi-star-fill text-success"></i>
-          {% else %}
-            <i class="bi bi-star text-success"></i>
-          {% endif %}
-        {% endfor %}
+    <div class="col-md-6">
+      <h2 class="gradient-text">{{ product.name }}</h2>
+      <div class="d-flex align-items-center mb-3">
+        <h4 class="text-success me-3 mb-0">₹ {{ product.price }}</h4>
+        <!-- Dynamic Green Star Rating -->
+        <div class="mb-1">
+          {% for i in "12345" %}
+            {% if forloop.counter <= product.rating %}
+              <i class="bi bi-star-fill text-warning"></i>
+            {% else %}
+              <i class="bi bi-star text-warning"></i>
+            {% endif %}
+          {% endfor %}
+        </div>
       </div>
 
       <!-- Product Description -->
-      <p>{{ product.description }}</p>
+      <p class="text-light">{{ product.description }}</p>
 
       <!-- Add to Cart Button -->
-      <a href="{% url 'add_to_cart' product.name %}" class="btn btn-primary">
-        <i class="bi bi-cart3"></i> Add to Cart
-      </a>
+      <div class="d-flex gap-3 flex-wrap">
+        <a href="{% url 'add_to_cart' product.name %}" class="btn btn-success rounded-pill px-4">
+          <i class="fas fa-cart-plus me-2"></i> Add to Cart
+        </a>
+        <a href="#relatedProducts" class="btn btn-outline-light rounded-pill px-4">
+          <i class="fas fa-star me-2"></i> Related Products
+        </a>
+      </div>
     </div>
   </div>
 
   <!-- Related Products -->
- <!-- Related Products -->
-{% if related_products %}
-<hr>
-<h4 class="mt-4 mb-3">Related Products</h4>
-<div class="row">
-  {% for rp in related_products %}
-  <div class="col-md-3 mb-3">
-    <div class="card product-card h-100">
-      <div class="card-img-top-container">
-        <img src="{{ rp.image_path }}" alt="{{ rp.name }}" class="img-fluid">
+  {% if related_products %}
+  <hr class="my-5">
+  <div id="relatedProducts">
+    <!-- Header with Icon -->
+    <div class="d-flex align-items-center justify-content-center mb-4">
+      <div class="me-3">
+        <i class="fas fa-shopping-bag fs-1 text-primary"></i>
       </div>
-      <div class="card-body text-center">
-        <h6 class="card-title">{{ rp.name }}</h6>
-        <p class="card-text text-success">₹ {{ rp.price }}</p>
+      <div>
+        <h2 class="mb-0 fw-bold gradient-text">Related Products</h2>
+        <p class="text-light">Discover similar items you might like</p>
+      </div>
+    </div>
 
-        <!-- Star Rating for Related Products -->
-        <div class="mb-2">
-          {% for i in "12345" %}
-            {% if forloop.counter <= rp.rating|default:5 %}
-              <i class="bi bi-star-fill text-success"></i>
-            {% else %}
-              <i class="bi bi-star text-success"></i>
-            {% endif %}
-          {% endfor %}
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+      {% for rp in related_products %}
+      <div class="col">
+        <div class="card h-100 product-card hackerrank-card">
+          <div class="position-relative">
+            <div class="card-img-top-container">
+              <img src="{{ rp.image_path }}" class="card-img-top" alt="{{ rp.name }}">
+            </div>
+            <div class="card-price-badge">₹ {{ rp.price }}</div>
+          </div>
+          <div class="card-body text-center pb-0">
+            <h5 class="card-title fw-bold text-truncate">{{ rp.name }}</h5>
+            
+            <!-- Star Rating for Related Products -->
+            <div class="mb-2">
+              {% for i in "12345" %}
+                {% if forloop.counter <= rp.rating|default:5 %}
+                  <i class="bi bi-star-fill text-warning"></i>
+                {% else %}
+                  <i class="bi bi-star text-warning"></i>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+          <div class="card-footer bg-transparent border-0 pt-0">
+            <a href="{% url 'add_to_cart' rp.name %}" class="btn btn-success w-100 rounded-pill">
+              <i class="fas fa-cart-plus me-2"></i>Add to Cart
+            </a>
+            <a href="{% url 'product_detail' rp.name %}" class="btn btn-outline-light w-100 rounded-pill mt-2">
+              <i class="fas fa-eye me-2"></i>View Details
+            </a>
+          </div>
         </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
 
-        <a href="{% url 'product_detail' rp.name %}" class="btn btn-sm btn-outline-primary">View</a>
+<!-- 🔹 Enhanced Footer Banner -->
+<div class="footer-banner">
+  <div class="container">
+    <div class="d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center">
+        <i class="fas fa-bolt me-2"></i>
+        <span>Discover more amazing products at TaskPro!</span>
+      </div>
+      <div>
+        <span class="badge hackerrank-badge">Rating: {{ product.rating }}/5</span>
       </div>
     </div>
   </div>
-  {% endfor %}
 </div>
-{% endif %}
+
+<style>
+/* 🔹 Import Font Awesome */
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
+/* 🔹 HackerRank Theme Background */
+body {
+  background-color: #1e1e1e;
+  color: #f2f2f2;
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(0, 97, 153, 0.1) 0%, transparent 20%),
+    radial-gradient(circle at 90% 80%, rgba(0, 97, 153, 0.1) 0%, transparent 20%),
+    radial-gradient(circle at 50% 50%, rgba(42, 170, 138, 0.05) 0%, transparent 80%);
+}
+
+/* 🔹 Gradient Text */
+.gradient-text {
+  background: linear-gradient(45deg, #2a8ab8, #42b983);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 🔹 HackerRank Card Style */
+.hackerrank-card {
+  background-color: #2a2a2a;
+  border: 1px solid #3e3e3e;
+  border-radius: 8px;
+  color: #f2f2f2;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.hackerrank-badge {
+  background-color: #2a8ab8;
+  color: #f2f2f2;
+}
+
+/* 🔹 Enhanced Product Cards */
+.product-card {
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  background: #2a2a2a;
+  position: relative;
+}
+.product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.3) !important;
+  border-color: #2a8ab8;
+}
+.card-img-top-container {
+  height: 220px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+}
+.card-img-top-container img {
+  max-height: 85%;
+  max-width: 85%;
+  object-fit: contain;
+  transition: transform 0.5s ease;
+}
+.product-card:hover .card-img-top-container img {
+  transform: scale(1.08);
+}
+.card-price-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(42, 138, 184, 0.9);
+  color: white;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  backdrop-filter: blur(4px);
+}
+
+/* 🔹 Enhanced Footer Banner */
+.footer-banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  background: linear-gradient(90deg, #1e1e1e, #2a2a2a);
+  color: #f2f2f2;
+  font-weight: 500;
+  padding: 12px 0;
+  font-size: 1rem;
+  z-index: 1050;
+  border-top: 1px solid #2a8ab8;
+}
+
+/* 🔹 Button Styles */
+.btn-primary {
+  background: linear-gradient(45deg, #2a8ab8, #42b983);
+  border: none;
+}
+
+.btn-success {
+  background: linear-gradient(45deg, #42b983, #2a8ab8);
+  border: none;
+}
+
+.btn-outline-light {
+  border-color: #3e3e3e;
+  color: #f2f2f2;
+}
+
+.btn-outline-light:hover {
+  background-color: #3e3e3e;
+  border-color: #3e3e3e;
+  color: #f2f2f2;
+}
+
+/* 🔹 Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #1e1e1e;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, #2a8ab8, #42b983);
+  border-radius: 10px;
+}
+
+/* 🔹 Responsive adjustments */
+@media (max-width: 768px) {
+  .card-img-top-container { height: 180px; }
+  .footer-banner .container > div {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  // Add animation delays to product cards
+  document.querySelectorAll('.product-card').forEach((card, index) => {
+    card.style.animationDelay = `${index * 0.1}s`;
+  });
+  
+  // Show notification if product was just added to cart
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('added_to_cart') === 'true') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-success alert-dismissible fade show fixed-top m-3';
+    alertDiv.style.zIndex = '1100';
+    alertDiv.innerHTML = `
+      <i class="fas fa-check-circle me-2"></i>
+      <strong>{{ product.name }}</strong> has been added to your cart!
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    // Auto-dismiss after 3 seconds
+    setTimeout(() => {
+      const bsAlert = new bootstrap.Alert(alertDiv);
+      bsAlert.close();
+    }, 3000);
+  }
+});
+</script>
 
 {% endblock %}
