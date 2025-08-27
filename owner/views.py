@@ -285,11 +285,13 @@ def get_category_count(request):
     return JsonResponse({"count": count})
 
 # -------------------- Subcategory --------------------
+# views.py - Updated manage_subcategory view
 def manage_subcategory(request):
     email = request.session.get("email")
     if not email:
         return redirect("login")
 
+    # Fetch categories from the Category model
     categories = [cat.name for cat in Category.objects.all()]
     data = load_data()
     user_data_email = data['user_data'].get(email, {})
@@ -355,6 +357,33 @@ def manage_subcategory(request):
             sc["category"] = cat
             all_subs.append(sc)
 
+    # Apply filtering if requested
+    category_filter = request.GET.get('category', '')
+    if category_filter:
+        all_subs = [sc for sc in all_subs if sc.get("category", "").lower() == category_filter.lower()]
+
+    # Apply sorting if requested
+    sort_option = request.GET.get('sort', '')
+    if sort_option:
+        if sort_option == 'name_asc':
+            all_subs.sort(key=lambda x: x.get("name", "").lower())
+        elif sort_option == 'name_desc':
+            all_subs.sort(key=lambda x: x.get("name", "").lower(), reverse=True)
+        elif sort_option == 'price_asc':
+            all_subs.sort(key=lambda x: float(x.get("price", 0)))
+        elif sort_option == 'price_desc':
+            all_subs.sort(key=lambda x: float(x.get("price", 0)), reverse=True)
+
+    # Apply search if requested
+    search_query = request.GET.get('q', '')
+    if search_query:
+        search_query = search_query.lower()
+        all_subs = [sc for sc in all_subs 
+                   if search_query in sc.get("name", "").lower() 
+                   or search_query in sc.get("subcategory", "").lower()
+                   or search_query in sc.get("category", "").lower()
+                   or search_query in sc.get("description", "").lower()]
+
     # Apply pagination
     paginator = Paginator(all_subs, 5)
     page_number = request.GET.get("page")
@@ -371,7 +400,10 @@ def manage_subcategory(request):
         "page_obj": page_obj,
         "error": error,
         "all_subcategories": all_subcategories,
-        "total_count": total_count
+        "total_count": total_count,
+        "current_category_filter": category_filter,
+        "current_sort": sort_option,
+        "current_search": search_query
     })
 
 def delete_subcategory(request, category, name):

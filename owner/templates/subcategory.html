@@ -567,41 +567,49 @@ body {
     </div>
   </div>
 
-  <!-- Filter & Sort -->
-  <div class="control-card">
-    <h5><i class="fas fa-filter"></i> Filter & Sort</h5>
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-      <div class="filter-sort-container">
-        <div class="filter-sort-item">
-          <label for="filterCategory"><i class="fas fa-tag"></i> Category:</label>
-          <select id="filterCategory" class="form-select">
-            <option value="">All Categories</option>
-            {% for cat in categories %}
-              <option value="{{ cat }}">{{ cat }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        
-        <div class="filter-sort-item">
-          <label for="sortSelect"><i class="fas fa-sort"></i> Sort by:</label>
-          <select id="sortSelect" class="form-select">
-            <option value="">Default</option>
-            <option value="name_asc">Name ↑</option>
-            <option value="name_desc">Name ↓</option>
-            <option value="price_asc">Price ↑</option>
-            <option value="price_desc">Price ↓</option>
-          </select>
-        </div>
+ <!-- Filter & Sort -->
+<form id="filterSortForm" method="get" class="control-card">
+  <h5><i class="fas fa-filter"></i> Filter & Sort</h5>
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div class="filter-sort-container">
+
+      <!-- Category Filter -->
+      <div class="filter-sort-item">
+        <label for="filterCategory"><i class="fas fa-tag"></i> Category:</label>
+        <select id="filterCategory" name="category" class="form-select">
+          <option value="">All Categories</option>
+          {% for cat in categories %}
+            <option value="{{ cat }}" {% if current_category_filter == cat %}selected{% endif %}>{{ cat }}</option>
+          {% endfor %}
+        </select>
       </div>
-      
-      <div class="d-flex gap-2">
-        <button id="applyFilterSort" class="btn btn-apply"><i class="fas fa-check me-1"></i> Apply</button>
-        <button class="btn btn-add" data-bs-toggle="modal" data-bs-target="#addProductModal">
-          <i class="fas fa-plus"></i> Add New
-        </button>
+
+      <!-- Sort -->
+      <div class="filter-sort-item">
+        <label for="sortSelect"><i class="fas fa-sort"></i> Sort by:</label>
+        <select id="sortSelect" name="sort" class="form-select">
+          <option value="">Default</option>
+          <option value="name_asc" {% if current_sort == 'name_asc' %}selected{% endif %}>Name ↑</option>
+          <option value="name_desc" {% if current_sort == 'name_desc' %}selected{% endif %}>Name ↓</option>
+          <option value="price_asc" {% if current_sort == 'price_asc' %}selected{% endif %}>Price ↑</option>
+          <option value="price_desc" {% if current_sort == 'price_desc' %}selected{% endif %}>Price ↓</option>
+        </select>
       </div>
+
+    </div>
+    <div class="d-flex gap-2">
+      <button type="submit" id="applyFilterSort" class="btn btn-apply">
+        <i class="fas fa-check me-1"></i> Apply
+      </button>
+      <button class="btn btn-add" data-bs-toggle="modal" data-bs-target="#addProductModal">
+        <i class="fas fa-plus"></i> Add New
+      </button>
     </div>
   </div>
+</form>
+
+        
+    
 
   <!-- Subcategories Table -->
   <div class="table-container">
@@ -676,44 +684,49 @@ body {
     </div>
   </div>
 
-  <!-- Pagination -->
-  {% if page_obj.has_other_pages %}
-    <nav aria-label="Page navigation">
-      <ul class="pagination justify-content-center">
-        {% if page_obj.has_previous %}
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+  <nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+      {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_category_filter %}&category={{ current_category_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_search %}&q={{ current_search }}{% endif %}">
+            <i class="fas fa-chevron-left"></i> Previous
+          </a>
+        </li>
+      {% else %}
+        <li class="page-item disabled">
+          <span class="page-link"><i class="fas fa-chevron-left"></i> Previous</span>
+        </li>
+      {% endif %}
+      
+      {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+          <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+        {% else %}
           <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
-              <i class="fas fa-chevron-left"></i> Previous
+            <a class="page-link" href="?page={{ num }}{% if current_category_filter %}&category={{ current_category_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_search %}&q={{ current_search }}{% endif %}">
+              {{ num }}
             </a>
           </li>
-        {% else %}
-          <li class="page-item disabled">
-            <span class="page-link"><i class="fas fa-chevron-left"></i> Previous</span>
-          </li>
         {% endif %}
-        
-        {% for num in page_obj.paginator.page_range %}
-          {% if page_obj.number == num %}
-            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-          {% else %}
-            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
-          {% endif %}
-        {% endfor %}
-        
-        {% if page_obj.has_next %}
-          <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.next_page_number }}">
-              Next <i class="fas fa-chevron-right"></i>
-            </a>
-          </li>
-        {% else %}
-          <li class="page-item disabled">
-            <span class="page-link">Next <i class="fas fa-chevron-right"></i></span>
-          </li>
-        {% endif %}
-      </ul>
-    </nav>
-  {% endif %}
+      {% endfor %}
+      
+      {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_category_filter %}&category={{ current_category_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_search %}&q={{ current_search }}{% endif %}">
+            Next <i class="fas fa-chevron-right"></i>
+          </a>
+        </li>
+      {% else %}
+        <li class="page-item disabled">
+          <span class="page-link">Next <i class="fas fa-chevron-right"></i></span>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}
+
 
   <!-- Add Subcategory/Product Modal -->
   <div class="modal fade" id="addProductModal" tabindex="-1" aria-hidden="true">
