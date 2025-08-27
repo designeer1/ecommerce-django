@@ -1,86 +1,450 @@
 {% extends "customer/base.html" %}
 {% block content %}
 
-<div class="container mt-5">
-  <div class="card shadow p-4 mx-auto" style="max-width: 750px;">
-    <h3 class="text-success text-center mb-3"><i class="bi bi-check-circle-fill"></i> Payment Successful!</h3>
-    <p class="text-center text-muted mb-4">Thank you for your purchase. Here is your order invoice:</p>
-
-    <!-- Invoice -->
-    <h5 class="mb-3">Invoice Details</h5>
-    <ul class="list-group mb-3">
-      {% for item in invoice.products %}
-        <li class="list-group-item d-flex justify-content-between list-hover">
-          <div>{{ item.name }} (x{{ item.quantity }})</div>
-          <span>₹{{ item.total }}</span>
-        </li>
-      {% endfor %}
-    </ul>
-
-    <div class="text-center mt-3">
-      <a href="{% url 'download_invoice_pdf' %}" class="btn btn-outline-danger">
-        <i class="bi bi-file-earmark-pdf-fill"></i> Download Invoice as PDF
-      </a>
+<div class="container py-5">
+  <!-- Success Header with Animation -->
+  <div class="text-center mb-5">
+    <div class="success-animation mb-4">
+      <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+        <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"/>
+        <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+      </svg>
     </div>
+    <h1 class="display-5 fw-bold text-success mb-3">Payment Successful!</h1>
+    <h1 class="display-5 fw-bold text-success mb-3"> Thank You</h1>
+    <p class="lead text-muted">Thank you for your purchase. Your order has been confirmed.</p>
+   
+  </div>
 
-    <div class="d-flex justify-content-between mb-2">
-      <strong>Total:</strong> <span>₹{{ invoice.total }}</span>
-    </div>
-    <div class="d-flex justify-content-between mb-2 text-danger">
-      <strong>Discount:</strong> <span>₹{{ invoice.discount }}</span>
-    </div>
-    <div class="d-flex justify-content-between mb-3">
-      <strong>Grand Total:</strong> <span class="text-success fw-bold">₹{{ invoice.grand_total }}</span>
-    </div>
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <!-- Order Summary Card -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-light py-3">
+          <h5 class="card-title mb-0"><i class="bi bi-receipt me-2 text-primary"></i>Order Summary</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-8">
+              <!-- Order Items -->
+              <div class="order-items">
+                {% for item in invoice.products %}
+                <div class="d-flex align-items-center mb-3 p-3 border-bottom">
+                  <div class="product-icon bg-success bg-opacity-10 text-success rounded-circle p-3 me-3">
+                    <i class="bi bi-box-seam"></i>
+                  </div>
+                  <div class="flex-grow-1">
+                    <h6 class="mb-1 fw-semibold">{{ item.name }}</h6>
+                    <div class="d-flex justify-content-between">
+                      <small class="text-muted">Quantity: {{ item.quantity }}</small>
+                      <span class="text-dark fw-semibold">₹{{ item.total }}</span>
+                    </div>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            
+            <!-- Order Totals -->
+            <div class="col-md-4">
+              <div class="p-4 bg-light rounded-3 h-100">
+                <h6 class="border-bottom pb-2 mb-3">Order Total</h6>
+                <div class="d-flex justify-content-between mb-2">
+                  <span>Subtotal:</span>
+                  <span>₹{{ invoice.total }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2 text-success">
+                  <span>Discount:</span>
+                  <span>-₹{{ invoice.discount }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                  <span>Shipping:</span>
+                  <span>FREE</span>
+                </div>
+                <div class="d-flex justify-content-between mb-3 pt-2 border-top fw-bold">
+                  <span>Total:</span>
+                  <span class="text-success">₹{{ invoice.grand_total }}</span>
+                </div>
+                <div class="mt-3">
+                  <strong>Order ID:</strong> 
+                  <span class="text-muted">{{ invoice.order_id }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <div class="mb-3">
-      <strong>Order ID:</strong> {{ invoice.order_id }}
-    </div>
+      <!-- Shipping Address Card -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-light py-3">
+          <h5 class="card-title mb-0"><i class="bi bi-truck me-2 text-primary"></i>Shipping Details</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="p-3 border-end">
+                <h6 class="text-muted mb-3">Shipping Address</h6>
+                <div class="vstack gap-2">
+                  <div class="d-flex">
+                    <div class="text-muted me-2"><i class="bi bi-person"></i></div>
+                    <div>{{ address.full_name }}</div>
+                  </div>
+                  <div class="d-flex">
+                    <div class="text-muted me-2"><i class="bi bi-geo-alt"></i></div>
+                    <div>{{ address.address }}</div>
+                  </div>
+                  <div class="d-flex">
+                    <div class="text-muted me-2"><i class="bi bi-buildings"></i></div>
+                    <div>{{ address.city }}, {{ address.pincode }}</div>
+                  </div>
+                  <div class="d-flex">
+                    <div class="text-muted me-2"><i class="bi bi-telephone"></i></div>
+                    <div>{{ address.phone }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="p-3">
+                <h6 class="text-muted mb-3">Delivery Information</h6>
+                <div class="d-flex align-items-center mb-3">
+                  <div class="bg-success bg-opacity-10 p-2 rounded-circle me-3">
+                    <i class="bi bi-truck text-success"></i>
+                  </div>
+                  <div>
+                    <div class="fw-semibold">Standard Delivery</div>
+                    <small class="text-muted">Estimated delivery: 3-5 business days</small>
+                  </div>
+                </div>
+                <div class="progress mb-2" style="height: 8px;">
+                  <div class="progress-bar bg-success" role="progressbar" style="width: 25%" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <small class="text-muted">Order confirmed • Preparing for shipment</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <!-- ✅ Address Block -->
-    <h5 class="mb-3 mt-4">Shipping Address</h5>
-    <ul class="list-group mb-3">
-      <li class="list-group-item"><strong>Name:</strong> {{ address.full_name }}</li>
-      <li class="list-group-item"><strong>Address:</strong> {{ address.address }}</li>
-      <li class="list-group-item"><strong>City:</strong> {{ address.city }}</li>
-      <li class="list-group-item"><strong>Pincode:</strong> {{ address.pincode }}</li>
-      <li class="list-group-item"><strong>Phone:</strong> {{ address.phone }}</li>
-    </ul>
+      <!-- Action Buttons -->
+      <div class="text-center mt-5">
+        <div class="d-flex flex-column flex-md-row justify-content-center gap-3">
+          <button onclick="window.print()" class="btn btn-danger btn-lg px-4 py-3">
+            <i class="bi bi-printer-fill me-2"></i> Print Invoice
+          </button>
+          <a href="{% url 'track_order' order_id=invoice.order_id %}" class="btn btn-outline-primary btn-lg px-4 py-3">
+            <i class="bi bi-truck me-2"></i> Track Your Order
+          </a>
+          <a href="{% url 'customer_home' %}" class="btn btn-success btn-lg px-4 py-3">
+            <i class="bi bi-house-fill me-2"></i> Continue Shopping
+          </a>
+        </div>
+      </div>
 
-    <!-- Buttons: Continue Shopping & Track Order -->
-    <div class="d-flex justify-content-center gap-3 mt-4">
-      <a href="{% url 'customer_home' %}" class="btn btn-primary btn-lg px-4 btn-hover-underline">
-        <i class="bi bi-house-fill"></i> Continue Shopping
-      </a>
-      <a href="{% url 'track_order' order_id=invoice.order_id %}" class="btn btn-outline-primary btn-lg px-4 btn-hover-underline">
-        <i class="bi bi-truck"></i> Track Order
-      </a>
+      <!-- Support Information -->
+      <div class="text-center mt-5 pt-4 border-top">
+        <h6 class="text-muted mb-3">Need help with your order?</h6>
+        <div class="d-flex flex-wrap justify-content-center gap-4">
+          <div class="d-flex align-items-center">
+            <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-2">
+              <i class="bi bi-headset text-primary"></i>
+            </div>
+            <div>
+              <small class="d-block fw-semibold">Customer Support</small>
+              <small class="text-muted">24/7 assistance</small>
+            </div>
+          </div>
+          <div class="d-flex align-items-center">
+            <div class="bg-warning bg-opacity-10 p-2 rounded-circle me-2">
+              <i class="bi bi-arrow-repeat text-warning"></i>
+            </div>
+            <div>
+              <small class="d-block fw-semibold">Easy Returns</small>
+              <small class="text-muted">30-day policy</small>
+            </div>
+          </div>
+          <div class="d-flex align-items-center">
+            <div class="bg-info bg-opacity-10 p-2 rounded-circle me-2">
+              <i class="bi bi-shield-check text-info"></i>
+            </div>
+            <div>
+              <small class="d-block fw-semibold">Secure Payment</small>
+              <small class="text-muted">SSL encrypted</small>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
+<!-- Print Styles -->
 <style>
-  .list-hover:hover {
-    background-color: #f1f1f1;
-    transition: all 0.3s;
+  @media print {
+    /* Hide elements that shouldn't be printed */
+    .navbar, 
+    .btn,
+    .text-center.mt-5:not(.mb-5) {
+      display: none !important;
+    }
+    
+    /* Show only the content */
+    body {
+      padding: 15px !important;
+      background: white !important;
+      font-size: 12pt !important;
+    }
+    
+    .container {
+      max-width: 100% !important;
+      padding: 0 !important;
+    }
+    
+    /* Improve print layout */
+    .card {
+      border: 1px solid #ddd !important;
+      box-shadow: none !important;
+      page-break-inside: avoid;
+    }
+    
+    .card-header {
+      background: #f8f9fa !important;
+      color: #000 !important;
+    }
+    
+    /* Ensure all text is black for printing */
+    body, .card, .card-body, .card-header, h1, h2, h3, h4, h5, h6, p, span, div {
+      color: #000 !important;
+    }
+    
+    .text-success {
+      color: #000 !important;
+      font-weight: bold;
+    }
+    
+    /* Adjust spacing for print */
+    .py-5 {
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+    }
+    
+    .mb-4, .mb-5 {
+      margin-bottom: 1rem !important;
+    }
+    
+    .display-5 {
+      font-size: 18pt !important;
+    }
+    
+    /* Make sure all content is visible */
+    .success-animation,
+    .progress,
+    .bg-success,
+    .bg-primary,
+    .bg-warning,
+    .bg-info {
+      -webkit-print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+    
+    /* Print header */
+    .text-center.mb-5::before {
+      content: "Invoice - Order #{{ invoice.order_id }}";
+      display: block;
+      font-size: 16pt;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    
+    /* Add URL after the page for reference */
+    .container::after {
+      content: "Printed from: Your Website Name | {{ invoice.date|date:'F j, Y' }}";
+      display: block;
+      margin-top: 30px;
+      font-size: 10pt;
+      color: #666;
+      text-align: center;
+    }
+    
+    /* Ensure background colors print */
+    .bg-light {
+      background-color: #f8f9fa !important;
+    }
+    
+    .bg-success.bg-opacity-10 {
+      background-color: rgba(25, 135, 84, 0.1) !important;
+    }
+    
+    .bg-primary.bg-opacity-10 {
+      background-color: rgba(13, 110, 253, 0.1) !important;
+    }
+    
+    .bg-warning.bg-opacity-10 {
+      background-color: rgba(255, 193, 7, 0.1) !important;
+    }
+    
+    .bg-info.bg-opacity-10 {
+      background-color: rgba(13, 202, 240, 0.1) !important;
+    }
+    
+    /* Progress bar */
+    .progress-bar {
+      background-color: #198754 !important;
+    }
   }
-  /* Hover underline effect with blue line similar to Amazon */
-  .btn-hover-underline {
+  
+  /* Success Animation */
+  .success-animation {
+    display: flex;
+    justify-content: center;
+  }
+  
+  .checkmark {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: block;
+    stroke-width: 5;
+    stroke: #4bb543;
+    stroke-miterlimit: 10;
+    box-shadow: 0 0 15px rgba(75, 181, 67, 0.3);
+    animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
+  }
+  
+  .checkmark__circle {
+    stroke-dasharray: 166;
+    stroke-dashoffset: 166;
+    stroke-width: 5;
+    stroke-miterlimit: 10;
+    stroke: #4bb543;
+    fill: none;
+    animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+  }
+  
+  .checkmark__check {
+    transform-origin: 50% 50%;
+    stroke-dasharray: 48;
+    stroke-dashoffset: 48;
+    animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+  }
+  
+  @keyframes stroke {
+    100% {
+      stroke-dashoffset: 0;
+    }
+  }
+  
+  @keyframes scale {
+    0%, 100% {
+      transform: none;
+    }
+    50% {
+      transform: scale3d(1.1, 1.1, 1);
+    }
+  }
+  
+  @keyframes fill {
+    100% {
+      box-shadow: 0 0 20px rgba(75, 181, 67, 0.5);
+    }
+  }
+  
+  /* Card hover effects */
+  .card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  /* Button styles */
+  .btn {
+    border-radius: 8px;
+    transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
   }
-  .btn-hover-underline::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    height: 3px;
-    width: 0;
-    background-color: #0d6efd; /* Bootstrap primary blue */
-    transition: width 0.3s ease;
+  
+  .btn:hover {
+    transform: translateY(-2px);
   }
-  .btn-hover-underline:hover::after {
-    width: 100%;
+  
+  .btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+  }
+  
+  .btn:hover::after {
+    animation: ripple 1s ease-out;
+  }
+  
+  @keyframes ripple {
+    0% {
+      transform: scale(0, 0);
+      opacity: 1;
+    }
+    20% {
+      transform: scale(25, 25);
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: scale(40, 40);
+    }
+  }
+  
+  /* Product icon styling */
+  .product-icon {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .display-5 {
+      font-size: 2.2rem;
+    }
+    
+    .btn-lg {
+      padding: 0.8rem 1.5rem;
+      font-size: 1rem;
+    }
+    
+    @media print {
+      .row {
+        display: block !important;
+      }
+      
+      .col-md-6, .col-md-8, .col-md-4 {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: none !important;
+      }
+      
+      .border-end {
+        border-right: none !important;
+        border-bottom: 1px solid #ddd !important;
+        padding-bottom: 20px !important;
+        margin-bottom: 20px !important;
+      }
+    }
   }
 </style>
 

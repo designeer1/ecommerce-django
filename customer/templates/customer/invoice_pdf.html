@@ -3,107 +3,302 @@
 <head>
   <meta charset="UTF-8">
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    h2, h3, h4, h5 { margin: 8px 0; }
-    .text-success { color: #28a745; }
-    .text-danger { color: #dc3545; }
-    .text-muted { color: #6c757d; }
-    .fw-bold { font-weight: bold; }
-
+    /* Base styles */
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      margin: 0;
+      padding: 20px;
+      color: #333;
+      background-color: #f8f9fa;
+    }
+    
+    .invoice-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    
+    /* Header styles */
     .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      padding: 25px 30px;
+      background: linear-gradient(135deg, #198754 0%, #20c997 100%);
+      color: white;
     }
+    
     .logo img {
       max-height: 60px;
+      filter: brightness(0) invert(1);
     }
+    
     .order-info {
       text-align: right;
+    }
+    
+    .order-info h2 {
+      margin: 0 0 5px 0;
+      font-size: 24px;
+    }
+    
+    .order-info div {
+      margin: 3px 0;
       font-size: 14px;
-      color: #555;
     }
-
-    .card {
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      padding: 20px;
-      box-shadow: 2px 2px 5px #ccc;
+    
+    /* Content styles */
+    .content {
+      padding: 30px;
     }
-    .list-group {
-      list-style: none;
-      padding: 0;
+    
+    .success-banner {
+      text-align: center;
+      margin-bottom: 25px;
+      padding: 15px;
+      background: #e8f5e9;
+      border-radius: 8px;
+      border-left: 4px solid #4caf50;
+    }
+    
+    .success-banner h3 {
       margin: 0;
-      border: 1px solid #ddd;
-      border-radius: 5px;
+      color: #2e7d32;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
     }
-    .list-group-item {
-      padding: 8px 12px;
-      border-bottom: 1px solid #ddd;
+    
+    .section-title {
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e9ecef;
+      margin: 25px 0 15px 0;
+      color: #198754;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    .list-group-item:last-child {
+    
+    /* Table styles */
+    .invoice-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+    }
+    
+    .invoice-table th {
+      background-color: #f8f9fa;
+      text-align: left;
+      padding: 12px 15px;
+      border-bottom: 2px solid #dee2e6;
+      color: #495057;
+    }
+    
+    .invoice-table td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #e9ecef;
+    }
+    
+    .invoice-table tr:last-child td {
       border-bottom: none;
     }
-
-    .totals {
-      margin-top: 15px;
+    
+    .text-right {
+      text-align: right;
     }
-    .totals div {
+    
+    /* Summary styles */
+    .summary {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    
+    .summary-row {
       display: flex;
       justify-content: space-between;
-      margin: 5px 0;
+      padding: 8px 0;
     }
-    .address-block {
-      margin-top: 15px;
+    
+    .summary-total {
+      border-top: 2px solid #dee2e6;
+      margin-top: 10px;
+      padding-top: 10px;
+      font-weight: bold;
+      font-size: 18px;
+      color: #198754;
     }
+    
+    /* Address styles */
+    .address-card {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    
+    .address-card h4 {
+      margin-top: 0;
+      color: #198754;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .address-details {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px 15px;
+    }
+    
+    .address-label {
+      color: #6c757d;
+      font-weight: 500;
+    }
+    
+    /* Footer styles */
+    .footer {
+      text-align: center;
+      padding: 20px;
+      margin-top: 30px;
+      color: #6c757d;
+      font-size: 14px;
+      border-top: 1px solid #e9ecef;
+    }
+    
+    .thank-you {
+      font-style: italic;
+      margin-top: 10px;
+      color: #198754;
+    }
+    
+    /* Utility classes */
+    .text-success { color: #198754; }
+    .text-danger { color: #dc3545; }
+    .fw-bold { font-weight: bold; }
+    .mb-0 { margin-bottom: 0; }
   </style>
 </head>
 <body>
 
-  <!-- Header with Logo + Order Date -->
-  <div class="header">
-    <div class="logo">
-      <img src="{{ logo_url }}" alt="Company Logo">
-    </div>
-    <div class="order-info">
-      <div><strong>Order ID:</strong> {{ invoice.order_id }}</div>
-      <div><strong>Order Date:</strong> {{ invoice.order_date }}</div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3 class="text-success" style="text-align:center;">✔ Payment Successful!</h3>
-    <p class="text-muted" style="text-align:center;">Thank you for your purchase. Here is your order invoice:</p>
-
-    <!-- Invoice Items -->
-    <h4>Invoice Details</h4>
-    <ul class="list-group">
-      {% for item in invoice.products %}
-      <li class="list-group-item">
-        {{ item.name }} (x{{ item.quantity }})
-        <span style="float:right;">₹{{ item.total }}</span>
-      </li>
-      {% endfor %}
-    </ul>
-
-    <!-- Totals -->
-    <div class="totals">
-      <div><strong>Total:</strong> <span>₹{{ invoice.total }}</span></div>
-      <div class="text-danger"><strong>Discount:</strong> <span>₹{{ invoice.discount }}</span></div>
-      <div><strong>Grand Total:</strong> <span class="text-success fw-bold">₹{{ invoice.grand_total }}</span></div>
+  <div class="invoice-container">
+    <!-- Header with Logo and Order Info -->
+    <div class="header">
+      <div class="logo">
+        <img src="{{ logo_url }}" alt="Company Logo">
+      </div>
+      <div class="order-info">
+        <h2>INVOICE</h2>
+        <div><strong>Order ID:</strong> {{ invoice.order_id }}</div>
+        <div><strong>Order Date:</strong> {{ invoice.order_date }}</div>
+        <div><strong>Payment Status:</strong> Paid</div>
+      </div>
     </div>
 
-    <!-- Address -->
-    <div class="address-block">
-      <h4>Shipping Address</h4>
-      <ul class="list-group">
-        <li class="list-group-item"><strong>Name:</strong> {{ address.full_name }}</li>
-        <li class="list-group-item"><strong>Address:</strong> {{ address.address }}</li>
-        <li class="list-group-item"><strong>City:</strong> {{ address.city }}</li>
-        <li class="list-group-item"><strong>Pincode:</strong> {{ address.pincode }}</li>
-        <li class="list-group-item"><strong>Phone:</strong> {{ address.phone }}</li>
-      </ul>
+    <div class="content">
+      <!-- Success Banner -->
+      <div class="success-banner">
+        <h3>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="#2e7d32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Payment Successful!
+        </h3>
+        <p class="mb-0">Thank you for your purchase. This document serves as your official invoice.</p>
+      </div>
+
+      <!-- Invoice Items -->
+      <h4 class="section-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 12H15M9 16H15M9 8H15M5 21H19C20.1046 21 21 20.1046 21 19V5C21 3.89543 20.1046 3 19 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21Z" stroke="#198754" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Order Details
+      </h4>
+      
+      <table class="invoice-table">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Quantity</th>
+            <th class="text-right">Unit Price</th>
+            <th class="text-right">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in invoice.products %}
+          <tr>
+            <td>{{ item.name }}</td>
+            <td>{{ item.quantity }}</td>
+            <td class="text-right">₹{{ item.unit_price }}</td>
+            <td class="text-right">₹{{ item.total }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Totals -->
+      <div class="summary">
+        <div class="summary-row">
+          <span>Subtotal:</span>
+          <span>₹{{ invoice.total }}</span>
+        </div>
+        <div class="summary-row text-danger">
+          <span>Discount:</span>
+          <span>-₹{{ invoice.discount }}</span>
+        </div>
+        <div class="summary-row">
+          <span>Shipping:</span>
+          <span>FREE</span>
+        </div>
+        <div class="summary-row">
+          <span>Tax:</span>
+          <span>₹0.00</span>
+        </div>
+        <div class="summary-row summary-total">
+          <span>Grand Total:</span>
+          <span class="text-success">₹{{ invoice.grand_total }}</span>
+        </div>
+      </div>
+
+      <!-- Address -->
+      <h4 class="section-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M17.6569 16.6569C16.7202 17.5935 14.7616 19.5521 13.4138 20.8999C12.6327 21.681 11.3677 21.6814 10.5866 20.9003C9.26234 19.576 7.34159 17.6553 6.34315 16.6569C3.21895 13.5327 3.21895 8.46734 6.34315 5.34315C9.46734 2.21895 14.5327 2.21895 17.6569 5.34315C20.781 8.46734 20.781 13.5327 17.6569 16.6569Z" stroke="#198754" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M15 11C15 12.6569 13.6569 14 12 14C10.3431 14 9 12.6569 9 11C9 9.34315 10.3431 8 12 8C13.6569 8 15 9.34315 15 11Z" stroke="#198754" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Shipping Address
+      </h4>
+      
+      <div class="address-card">
+        <h4>Delivery Information</h4>
+        <div class="address-details">
+          <span class="address-label">Name:</span>
+          <span>{{ address.full_name }}</span>
+          
+          <span class="address-label">Address:</span>
+          <span>{{ address.address }}</span>
+          
+          <span class="address-label">City:</span>
+          <span>{{ address.city }}</span>
+          
+          <span class="address-label">Pincode:</span>
+          <span>{{ address.pincode }}</span>
+          
+          <span class="address-label">Phone:</span>
+          <span>{{ address.phone }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p>If you have any questions about this invoice, please contact our support team.</p>
+      <p class="thank-you">Thank you for your business!</p>
     </div>
   </div>
 

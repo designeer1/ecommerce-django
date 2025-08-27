@@ -1,73 +1,318 @@
 {% extends "customer/base.html" %}
 {% block content %}
 
-<div class="container mt-5">
-  <div class="card shadow p-4 mx-auto" style="max-width: 750px;">
-    <h3 class="mb-4 text-center text-success">
-      <i class="bi bi-credit-card-2-front-fill"></i> Payment Summary
-    </h3>
+<div class="container py-5">
+  <!-- Header with progress indicator -->
+  <div class="text-center mb-5">
+    <h2 class="fw-bold display-5 text-gradient-primary mb-2">Complete Your Purchase</h2>
+    <p class="text-muted lead">Review your order and make payment</p>
+    
+    <!-- Progress Steps -->
+    <div class="progress-container mx-auto mt-4">
+      <div class="progress-bar-container">
+        <div class="progress-step completed">
+          <div class="step-number">1</div>
+          <span class="step-label">Cart</span>
+        </div>
+        <div class="progress-step completed">
+          <div class="step-number">2</div>
+          <span class="step-label">Details</span>
+        </div>
+        <div class="progress-step active">
+          <div class="step-number">3</div>
+          <span class="step-label">Payment</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <!-- Order Summary -->
-    <ul class="list-group mb-3">
-      {% for item in cart_products %}
-        <li class="list-group-item d-flex justify-content-between align-items-center list-hover">
-          <div>
-            <strong>{{ item.name }}</strong> (x{{ item.quantity }})
+  <div class="row justify-content-center">
+    <div class="col-lg-10 col-xl-8">
+      <div class="card border-0 shadow-lg rounded-4 overflow-hidden glass-effect">
+        <!-- Card Header -->
+        <div class="card-header bg-success text-white py-4">
+          <h4 class="mb-0 text-center"><i class="bi bi-credit-card me-2"></i>Payment Summary</h4>
+        </div>
+        
+        <div class="card-body p-4 p-md-5">
+          <div class="row">
+            <!-- Order Summary -->
+            <div class="col-md-6">
+              <h5 class="fw-semibold mb-4"><i class="bi bi-bag me-2 text-success"></i>Order Details</h5>
+              
+              <!-- Order Items -->
+              <div class="order-items mb-4">
+                {% for item in cart_products %}
+                <div class="order-item d-flex align-items-center mb-3 p-3 bg-light rounded-3">
+                  <div class="product-icon me-3">
+                    <i class="bi bi-box-seam text-success"></i>
+                  </div>
+                  <div class="flex-grow-1">
+                    <h6 class="mb-0 fw-semibold">{{ item.name }}</h6>
+                    <small class="text-muted">Quantity: {{ item.quantity }}</small>
+                  </div>
+                  <span class="fw-bold text-success">₹{{ item.total }}</span>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            
+            <!-- Payment Summary -->
+            <div class="col-md-6">
+              <h5 class="fw-semibold mb-4"><i class="bi bi-receipt me-2 text-success"></i>Order Summary</h5>
+              
+              <div class="pricing-breakdown p-4 bg-light rounded-4">
+                <div class="d-flex justify-content-between mb-2">
+                  <span class="text-muted">Subtotal</span>
+                  <span>₹{{ total }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2 text-success">
+                  <span class="text-muted">Discount</span>
+                  <span>-₹{{ discount }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                  <span class="text-muted">Shipping</span>
+                  <span>FREE</span>
+                </div>
+                <div class="d-flex justify-content-between mb-3 pb-2 border-bottom">
+                  <span class="text-muted">Tax</span>
+                  <span>₹0.00</span>
+                </div>
+                <div class="d-flex justify-content-between pt-2 fw-bold fs-5 mt-2">
+                  <span>Total Amount</span>
+                  <span class="text-success">₹{{ grand_total }}</span>
+                </div>
+              </div>
+              
+              <!-- Coupon Section -->
+              <div class="coupon-section mt-4">
+                <h6 class="fw-semibold mb-3"><i class="bi bi-tag me-2 text-warning"></i>Apply Coupon</h6>
+                <form method="post">
+                  {% csrf_token %}
+                  <input type="hidden" name="coupon_code" value="DISCOUNT20">
+                  <div class="input-group mb-2">
+                    <span class="input-group-text"><i class="bi bi-ticket-perforated"></i></span>
+                    <input type="text" class="form-control" value="DISCOUNT20" readonly>
+                    <button type="submit" class="btn btn-warning">
+                      Apply
+                    </button>
+                  </div>
+                  
+                  {% if coupon_applied %}
+                    <div class="alert alert-success mt-3 mb-0 py-2 d-flex align-items-center" role="alert">
+                      <i class="bi bi-check-circle-fill me-2"></i>Coupon applied successfully!
+                    </div>
+                  {% elif coupon_code %}
+                    <div class="alert alert-danger mt-3 mb-0 py-2 d-flex align-items-center" role="alert">
+                      <i class="bi bi-exclamation-circle-fill me-2"></i>Invalid coupon code.
+                    </div>
+                  {% endif %}
+                </form>
+              </div>
+            </div>
           </div>
-          <span>₹{{ item.total }}</span>
-        </li>
-      {% endfor %}
-    </ul>
-
-    <div class="d-flex justify-content-between mb-2">
-      <strong>Total:</strong>
-      <span>₹{{ total }}</span>
+          
+          <!-- Security Features -->
+          <div class="row mt-5 pt-4 border-top">
+            <div class="col-md-4 text-center mb-3">
+              <div class="security-feature">
+                <div class="icon-wrapper mb-2">
+                  <i class="bi bi-shield-check text-success"></i>
+                </div>
+                <h6 class="fw-semibold">Secure Payment</h6>
+                <p class="text-muted small">SSL encrypted transaction</p>
+              </div>
+            </div>
+            <div class="col-md-4 text-center mb-3">
+              <div class="security-feature">
+                <div class="icon-wrapper mb-2">
+                  <i class="bi bi-arrow-repeat text-success"></i>
+                </div>
+                <h6 class="fw-semibold">Easy Returns</h6>
+                <p class="text-muted small">30-day return policy</p>
+              </div>
+            </div>
+            <div class="col-md-4 text-center mb-3">
+              <div class="security-feature">
+                <div class="icon-wrapper mb-2">
+                  <i class="bi bi-headset text-success"></i>
+                </div>
+                <h6 class="fw-semibold">Support</h6>
+                <p class="text-muted small">24/7 customer service</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Payment Button -->
+          <div class="text-center mt-4 pt-4 border-top">
+            <div class="d-flex justify-content-center align-items-center mb-3">
+              <i class="bi bi-lock-fill text-success me-2"></i>
+              <small class="text-muted">Secure payment powered by Razorpay</small>
+            </div>
+            
+            <form action="{% url 'payment_success' %}" method="POST">
+              {% csrf_token %}
+              <script
+                src="https://checkout.razorpay.com/v1/checkout.js"
+                data-key="{{ razorpay_key }}"
+                data-amount="{{ amount }}"
+                data-currency="INR"
+                data-order_id="{{ razorpay_order_id }}"
+                data-buttontext="Pay Now - ₹{{ grand_total }}"
+                data-name="Premium Store"
+                data-description="Secure Payment"
+                data-image="/static/logo.png"
+                data-theme.color="#198754"
+                data-callback_url="{% url 'payment_success' %}"
+                data-prefill.name="{{ user.first_name }} {{ user.last_name }}"
+                data-prefill.email="{{ user.email }}">
+              </script>
+            </form>
+            
+            <p class="text-muted small mt-3">By completing your purchase, you agree to our <a href="#" class="text-success">Terms of Service</a></p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Support Info -->
+      <div class="text-center mt-4">
+        <p class="text-muted">Need help? <a href="#" class="text-success text-decoration-none">Contact our support team</a></p>
+      </div>
     </div>
-    <div class="d-flex justify-content-between mb-2 text-danger">
-      <strong>Discount:</strong>
-      <span>₹{{ discount }}</span>
-    </div>
-    <div class="d-flex justify-content-between mb-4">
-      <strong>Grand Total:</strong>
-      <span class="fw-bold text-success">₹{{ grand_total }}</span>
-    </div>
-
-    <!-- ✅ Coupon form starts here -->
-   <!-- Apply Coupon Button Form -->
-<form method="post" class="mb-4">
-  {% csrf_token %}
-  <input type="hidden" name="coupon_code" value="DISCOUNT20">
-  <button type="submit" class="btn btn-outline-success w-100">
-    <i class="bi bi-ticket-perforated-fill"></i> Apply coupon
-  </button>
-
-  {% if coupon_applied %}
-    <small class="text-success d-block mt-2 text-center">Coupon applied successfully!</small>
-  {% elif coupon_code %}
-    <small class="text-danger d-block mt-2 text-center">Invalid coupon code.</small>
-  {% endif %}
-</form>
-
-
-    <!-- ✅ Razorpay payment button -->
-    <form action="{% url 'payment_success' %}" method="POST">
-      {% csrf_token %}
-      <script
-        src="https://checkout.razorpay.com/v1/checkout.js"
-        data-key="{{ razorpay_key }}"
-        data-amount="{{ amount }}"
-        data-currency="INR"
-        data-order_id="{{ razorpay_order_id }}"
-        data-buttontext="Pay Now"
-        data-name="Your Store"
-        data-description="Online Payment"
-        data-image="/static/logo.png"
-        data-theme.color="#28a745"
-        data-callback_url="{% url 'payment_success' %}">
-      </script>
-    </form>
-
   </div>
 </div>
+
+<style>
+  /* Custom Styles */
+  :root {
+    --primary: #198754;
+    --secondary: #20c997;
+    --dark: #2d2d2d;
+    --light: #f8f9fa;
+  }
+  
+  body {
+    background: linear-gradient(135deg, #f5f7fa 0%, #e2e8f0 100%);
+    min-height: 100vh;
+  }
+  
+  .text-gradient-primary {
+    background: linear-gradient(45deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .product-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: #e6f7f1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+  }
+  
+  .icon-wrapper {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #e6f7f1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+  }
+  
+  /* Progress Bar */
+  .progress-bar-container {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    max-width: 400px;
+  }
+  
+  .progress-bar-container::before {
+    content: '';
+    position: absolute;
+    top: 15px;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: #e9ecef;
+    z-index: 1;
+  }
+  
+  .progress-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+  }
+  
+  .step-number {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background: #e9ecef;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-bottom: 5px;
+    transition: all 0.3s ease;
+  }
+  
+  .step-label {
+    font-size: 0.85rem;
+    color: #6c757d;
+  }
+  
+  .progress-step.completed .step-number,
+  .progress-step.active .step-number {
+    background: var(--primary);
+    color: white;
+  }
+  
+  .progress-step.completed .step-label,
+  .progress-step.active .step-label {
+    color: var(--primary);
+    font-weight: 500;
+  }
+  
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .card {
+    animation: fadeIn 0.5s ease-out;
+  }
+  
+  .order-item {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .order-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .card-body {
+      padding: 1.5rem;
+    }
+  }
+</style>
 
 {% endblock %}
