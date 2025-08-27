@@ -23,8 +23,42 @@ def load_data():
 def get_all_products():
     data = load_data()
     all_products = []
-    for _, udata in data["user_data"].items():
-        all_products.extend(udata.get("products", []))
+    seen_products = set()  # To avoid duplicates
+
+    # Collect products from user_data -> subcategories
+    for _, udata in data.get("user_data", {}).items():
+        subcategories = udata.get("subcategories", {})
+        for cat, products in subcategories.items():
+            for p in products:
+                product_name = p.get("name")
+                if product_name and product_name not in seen_products:
+                    all_products.append({
+                        "name": product_name,
+                        "category": p.get("category", cat),
+                        "subcategory": p.get("subcategory", ""),
+                        "price": float(p.get("price", 0)),
+                        "image_path": p.get("image", "/media/products/default.png"),
+                        "description": p.get("description", ""),
+                        "rating": p.get("rating", 5)
+                    })
+                    seen_products.add(product_name)
+
+    # Collect products from user_data -> products
+    for _, udata in data.get("user_data", {}).items():
+        for p in udata.get("products", []):
+            product_name = p.get("name")
+            if product_name and product_name not in seen_products:
+                all_products.append({
+                    "name": product_name,
+                    "category": p.get("category", ""),
+                    "subcategory": p.get("subcategory", ""),
+                    "price": float(p.get("price", 0)),
+                    "image_path": p.get("image_path", "/media/products/default.png"),
+                    "description": p.get("description", ""),
+                    "rating": p.get("rating", 5)
+                })
+                seen_products.add(product_name)
+
     return all_products
 
 def get_all_categories_and_subcategories():
@@ -37,6 +71,14 @@ def get_all_categories_and_subcategories():
             if cat:
                 if cat not in categories:
                     categories[cat] = set()
+                if sub:
+                    categories[cat].add(sub)
+        subcategories = udata.get("subcategories", {})
+        for cat, products in subcategories.items():
+            if cat not in categories:
+                categories[cat] = set()
+            for p in products:
+                sub = p.get("subcategory")
                 if sub:
                     categories[cat].add(sub)
     for cat in categories:
@@ -59,7 +101,7 @@ def get_categories_with_products():
                     result[cat][sub] = []
                 result[cat][sub].append({
                     "name": item["name"],
-                    "image_path": item.get("image_path", ""),
+                    "image_path": item.get("image", "/media/products/default.png"),
                     "price": item.get("price", 0),
                 })
     return result
@@ -102,13 +144,14 @@ def home(request):
     all_products = get_all_products()
     categories = get_categories_with_products()
     cart = request.session.get("cart", [])
-    cart_count = len(cart)  # Count unique products
-    
-    # Get new_product_added from session and clear it to prevent repeated notifications
+    cart_count = len(cart)
     new_product_added = request.session.get("new_product_added", None)
     if new_product_added:
-        del request.session["new_product_added"]  # Clear after use
+        del request.session["new_product_added"]
         request.session.modified = True
+    
+    # Debug: Print products to console
+    print("Products sent to home.html:", all_products)
     
     return render(request, "customer/home.html", {
         "products": all_products,
@@ -121,7 +164,7 @@ def products_by_category(request, cat_name):
     filtered_products = [p for p in get_all_products() if p.get("category") == cat_name]
     categories = get_all_categories_and_subcategories()
     cart = request.session.get("cart", [])
-    cart_count = len(cart)  # Count unique products
+    cart_count = len(cart)
     return render(request, "customer/home.html", {
         "products": filtered_products,
         "categories": categories,
@@ -138,16 +181,24 @@ def products_by_subcategory(request, sub_name):
                 all_products.append({
                     "name": p.get("name"),
                     "subcategory": p.get("subcategory"),
-                    "category": next((cat for cat, sublist in udata.get("subcategories", {}).items() if p in sublist), ""),
+                    "category": p.get("category", ""),
                     "price": p.get("price"),
-                    "image_path": p.get("image_path", p.get("image"))
+                    "image_path": p.get("image_path", "/media/products/default.png")
                 })
-    categories = {}
-    for _, udata in data.get("user_data", {}).items():
-        for cat in udata.get("categories", []):
-            categories[cat] = sorted(list({p["subcategory"] for p in udata.get("subcategories", {}).get(cat, [])}))
+        subcategories = udata.get("subcategories", {})
+        for cat, products in subcategories.items():
+            for p in products:
+                if p.get("subcategory") == sub_name:
+                    all_products.append({
+                        "name": p.get("name"),
+                        "subcategory": p.get("subcategory"),
+                        "category": cat,
+                        "price": p.get("price"),
+                        "image_path": p.get("image", "/media/products/default.png")
+                    })
+    categories = get_all_categories_and_subcategories()
     cart = request.session.get("cart", [])
-    cart_count = len(cart)  # Count unique products
+    cart_count = len(cart)
     return render(request, "customer/home.html", {
         "products": all_products,
         "categories": categories,
@@ -172,7 +223,7 @@ def product_detail(request, product_name):
         related_products = []
     categories = get_all_categories_and_subcategories()
     cart = request.session.get("cart", [])
-    cart_count = len(cart)  # Count unique products
+    cart_count = len(cart)
     return render(request, "customer/product_detail.html", {
         "product": product,
         "related_products": related_products,
@@ -184,7 +235,6 @@ def product_detail(request, product_name):
 # ---------- Cart ----------
 def add_to_cart(request, product_name):
     cart = request.session.get("cart", [])
-    # Initialize notified products list in session if not exists
     notified_products = request.session.get("notified_products", [])
     
     product_exists = False
@@ -195,7 +245,6 @@ def add_to_cart(request, product_name):
             break
     if not product_exists:
         cart.append({"name": product_name, "quantity": 1})
-        # Only set new_product_added if product hasn't been notified before
         if product_name not in notified_products:
             request.session["new_product_added"] = product_name
             notified_products.append(product_name)
@@ -203,7 +252,7 @@ def add_to_cart(request, product_name):
         else:
             request.session["new_product_added"] = None
     else:
-        request.session["new_product_added"] = None  # No notification for quantity increment
+        request.session["new_product_added"] = None
     
     request.session["cart"] = cart
     request.session["cart_seen"] = False
@@ -213,7 +262,6 @@ def add_to_cart(request, product_name):
 def remove_from_cart(request, product_name):
     cart = request.session.get("cart", [])
     cart = [item for item in cart if item["name"] != product_name]
-    # Remove product from notified_products if it exists
     notified_products = request.session.get("notified_products", [])
     if product_name in notified_products:
         notified_products.remove(product_name)
@@ -239,7 +287,7 @@ def cart_view(request):
     request.session["cart_seen"] = True
     return render(request, "customer/cart.html", {
         "products": cart_products,
-        "cart_count": len(cart)  # Pass cart_count to base.html
+        "cart_count": len(cart)
     })
 
 def cart_table_view(request):
@@ -262,7 +310,7 @@ def cart_table_view(request):
     return render(request, "customer/cart_table.html", {
         "products": cart_products,
         "grand_total": grand_total,
-        "cart_count": len(cart)  # Pass cart_count to base.html
+        "cart_count": len(cart)
     })
 
 def increment_cart_item(request, product_name):
@@ -272,9 +320,9 @@ def increment_cart_item(request, product_name):
             item["quantity"] += 1
             break
     request.session["cart"] = cart
-    request.session["new_product_added"] = None  # Ensure no notification on quantity increment
+    request.session["new_product_added"] = None
     request.session.modified = True
-    return HttpResponseRedirect(reverse("customer_cart"))  # Redirect to cart.html
+    return HttpResponseRedirect(reverse("customer_cart"))
 
 def decrement_cart_item(request, product_name):
     cart = request.session.get("cart", [])
@@ -284,16 +332,15 @@ def decrement_cart_item(request, product_name):
                 item["quantity"] -= 1
             else:
                 cart.remove(item)
-                # Remove from notified_products if removed from cart
                 notified_products = request.session.get("notified_products", [])
                 if product_name in notified_products:
                     notified_products.remove(product_name)
                     request.session["notified_products"] = notified_products
             break
     request.session["cart"] = cart
-    request.session["new_product_added"] = None  # Ensure no notification on quantity decrement
+    request.session["new_product_added"] = None
     request.session.modified = True
-    return HttpResponseRedirect(reverse("customer_cart"))  # Redirect to cart.html
+    return HttpResponseRedirect(reverse("customer_cart"))
 
 from django.http import JsonResponse
 
@@ -302,15 +349,14 @@ def checkout_address(request):
     if not cart:
         return redirect("customer_cart")
 
-    # Load existing addresses from session (mock, replace with database if needed)
     previous_addresses = request.session.get("previous_addresses", [])
     if request.session.get("address"):
-        previous_addresses = [request.session["address"]] + previous_addresses[:2]  # Keep last 3 addresses
+        previous_addresses = [request.session["address"]] + previous_addresses[:2]
         request.session["previous_addresses"] = previous_addresses
         request.session.modified = True
 
     if request.method == "POST":
-        if 'full_name' in request.POST:  # New address save
+        if 'full_name' in request.POST:
             new_address = {
                 "full_name": request.POST.get("full_name"),
                 "address": request.POST.get("address"),
@@ -323,20 +369,19 @@ def checkout_address(request):
             request.session["address"] = new_address
             request.session.modified = True
             return JsonResponse({"success": True})
-        elif 'selected_address_index' in request.POST:  # Address selection
+        elif 'selected_address_index' in request.POST:
             index = int(request.POST.get("selected_address_index"))
             if 0 <= index < len(previous_addresses):
                 request.session["address"] = previous_addresses[index]
                 request.session.modified = True
                 return JsonResponse({"success": True})
             return JsonResponse({"success": False, "error": "Invalid address selection"})
-        elif 'delete_address_index' in request.POST:  # Delete address
+        elif 'delete_address_index' in request.POST:
             index = int(request.POST.get("delete_address_index"))
             if 0 <= index < len(previous_addresses):
                 deleted_address = previous_addresses.pop(index)
                 request.session["previous_addresses"] = previous_addresses
                 request.session.modified = True
-                # If deleted address was selected, clear current address or select another
                 if request.session.get("address") == deleted_address and previous_addresses:
                     request.session["address"] = previous_addresses[0]
                 elif not previous_addresses:
@@ -411,12 +456,11 @@ def checkout_payment(request):
         "amount": amount_in_paise,
         "coupon_applied": coupon_applied,
         "coupon_code": coupon_code,
-        "cart_count": len(cart)  # Pass cart_count to base.html
+        "cart_count": len(cart)
     })
 
 def place_order(request):
     if request.method == "POST":
-        # Clear notified_products on order placement
         request.session["notified_products"] = []
         request.session["cart"] = []
         messages.success(request, "Order placed successfully!")
@@ -427,12 +471,12 @@ def payment_success(request):
     invoice = request.session.get("invoice", {})
     address = request.session.get("address", {})
     request.session["cart"] = []
-    request.session["notified_products"] = []  # Clear notified products
+    request.session["notified_products"] = []
     request.session.modified = True
     return render(request, "customer/payment_success.html", {
         "invoice": invoice,
         "address": address,
-        "cart_count": 0  # Cart is cleared after payment
+        "cart_count": 0
     })
 
 def download_invoice_pdf(request):
@@ -517,12 +561,12 @@ def track_order(request, order_id):
         "order_id": order_id,
         "statuses": statuses,
         "current_status_index": current_status_index,
-        "cart_count": len(request.session.get("cart", []))  # Pass cart_count to base.html
+        "cart_count": len(request.session.get("cart", []))
     })
 
 def order_success(request):
     order_id = "order_R9KM15eIvDUlE2"
     return render(request, "customer/order_success.html", {
         "order_id": order_id,
-        "cart_count": 0  # Cart is cleared after order success
+        "cart_count": 0
     })

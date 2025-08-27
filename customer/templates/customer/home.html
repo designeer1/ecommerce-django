@@ -2,112 +2,480 @@
 {% load static %}
 {% block content %}
 
-<!-- Scrolling Banner -->
-<div id="bannerCarousel" class="carousel slide mb-5" data-bs-ride="carousel">
-  <div class="carousel-inner">
-
-    <!-- First Banner -->
+<!-- 🔹 Enhanced Slim Top Banner -->
+<div id="slimBanner" class="carousel slide top-banner mb-4" data-bs-ride="carousel" data-bs-interval="3000">
+  <div class="carousel-inner rounded-4 shadow-lg">
     <div class="carousel-item active">
-      <img src="{% static 'images/b1.jpg' %}" 
-           class="d-block w-100 banner-img" alt="Banner 1">
-    </div>
-
-    <!-- Second Banner -->
-    <div class="carousel-item">
-      <img src="{% static 'images/b2.jpg' %}" 
-           class="d-block w-100 banner-img" alt="Banner 2">
-    </div>
-
-    <!-- Third Banner -->
-    <div class="carousel-item">
-      <img src="{% static 'images/b4.jpg' %}" 
-           class="d-block w-100 banner-img" alt="Banner 3">
-    </div>
-
-  </div>
-
-  <!-- Controls -->
-  <button class="carousel-control-prev" type="button" data-bs-target="#bannerCarousel" data-bs-slide="prev">
-    <span class="carousel-control-prev-icon"></span>
-  </button>
-  <button class="carousel-control-next" type="button" data-bs-target="#bannerCarousel" data-bs-slide="next">
-    <span class="carousel-control-next-icon"></span>
-  </button>
-
-  <!-- Indicators -->
-  <div class="carousel-indicators">
-    <button type="button" data-bs-target="#bannerCarousel" data-bs-slide-to="0" class="active"></button>
-    <button type="button" data-bs-target="#bannerCarousel" data-bs-slide-to="1"></button>
-    <button type="button" data-bs-target="#bannerCarousel" data-bs-slide-to="2"></button>
-  </div>
-</div>
-
-<!-- Products Grid -->
-<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
-  {% for product in products %}
-  <div class="col">
-    <div class="card h-100 shadow-sm border-2 product-card">
-      <div class="card-img-top-container">
-        <img src="{{ product.image_path }}" class="card-img-top" alt="{{ product.name }}">
+      <img src="{% static 'images/b1.jpg' %}" class="d-block w-100" alt="Banner 1">
+      <div class="carousel-caption d-none d-md-block">
+        <h5>Welcome to TaskPro</h5>
+        <p>Explore our exclusive collection</p>
       </div>
-      <div class="card-body text-center">
-        <h5 class="card-title text-truncate">{{ product.name }}</h5>
-        <p class="card-text text-primary fw-bold">₹ {{ product.price }}</p>
-        <a href="{% url 'add_to_cart' product.name %}" class="btn btn-success btn-sm">
-          <i class="bi bi-cart-plus"></i> Add to Cart
-        </a>
-        <a href="{% url 'product_detail' product.name %}" class="btn btn-outline-primary btn-sm mt-1">
-          <i class="bi bi-eye"></i> View
-        </a>
+    </div>
+    <div class="carousel-item">
+      <img src="{% static 'images/b4.jpg' %}" class="d-block w-100" alt="Banner 2">
+      <div class="carousel-caption d-none d-md-block">
+        <h5>Special Offers</h5>
+        <p>Grab limited-time deals</p>
+      </div>
+    </div>
+    <div class="carousel-item">
+      <img src="{% static 'images/b6.jpg' %}" class="d-block w-100" alt="Banner 3">
+      <div class="carousel-caption d-none d-md-block">
+        <h5>New Arrivals</h5>
+        <p>Discover the latest products</p>
       </div>
     </div>
   </div>
-  {% empty %}
-    <p class="text-center mt-4">No products available yet.</p>
-  {% endfor %}
+  <button class="carousel-control-prev" type="button" data-bs-target="#slimBanner" data-bs-slide="prev">
+    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">Previous</span>
+  </button>
+  <button class="carousel-control-next" type="button" data-bs-target="#slimBanner" data-bs-slide="next">
+    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">Next</span>
+  </button>
 </div>
 
-<!-- Toast Notification -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050;">
-  <div id="cartToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="3000">
-    <div class="toast-header">
-      <strong class="me-auto"><i class="bi bi-cart-plus"></i> Cart Updated</strong>
-      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+<!-- 🔹 Product Section -->
+<div class="container py-5">
+  <!-- Header with Icon -->
+  <div class="d-flex align-items-center justify-content-center mb-4">
+    <div class="me-3">
+      <i class="fas fa-shopping-bag fs-1 text-primary"></i>
     </div>
-    <div class="toast-body">
-      Product added to cart successfully!
+    <div>
+      <h2 class="mb-0 fw-bold gradient-text">Explore Products</h2>
+      <p class="text-muted">Browse our wide range of products</p>
+    </div>
+  </div>
+
+  <!-- Search & Filter Controls -->
+  <div class="card shadow-sm border-0 mb-5">
+    <div class="card-body p-4">
+      <h5 class="card-title mb-4"><i class="fas fa-filter me-2"></i>Search & Filter</h5>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="position-relative">
+            <span class="position-absolute top-50 start-0 translate-middle-y ms-3">
+              <i class="fas fa-search text-muted"></i>
+            </span>
+            <input type="text" id="searchProductInput" class="form-control ps-5" placeholder="Search products by name...">
+            <ul id="searchDropdown" class="list-group position-absolute w-100 shadow-lg mt-1" 
+                style="z-index:1050; display:none; max-height:280px; overflow-y:auto; border-radius:12px;"></ul>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="d-flex align-items-center gap-3 flex-wrap">
+            <label for="priceFilter" class="fw-bold mb-0 flex-shrink-0">Max Price (₹):</label>
+            <div class="position-relative flex-grow-1" style="max-width: 150px;">
+              <span class="position-absolute top-50 start-0 translate-middle-y ms-2">
+                <i class="fas fa-indian-rupee-sign text-muted"></i>
+              </span>
+              <input type="number" id="priceFilter" min="0" step="0.01" class="form-control ps-4" placeholder="No limit">
+            </div>
+            <button id="applyFilterBtn" class="btn btn-primary flex-shrink-0">
+              <i class="fas fa-check me-1"></i>Apply
+            </button>
+            <button id="clearFiltersBtn" class="btn btn-outline-secondary flex-shrink-0">
+              <i class="fas fa-times me-1"></i>Clear
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Products Grid -->
+  <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4" id="productGrid">
+    {% for product in products %}
+      <div class="col product-col" data-price="{{ product.price }}" data-name="{{ product.name|lower }}">
+        <div class="card h-100 shadow-sm product-card border-0">
+          <div class="position-relative">
+            <div class="card-img-top-container">
+              <img src="{{ product.image_path|default:'/static/images/default.png' }}" class="card-img-top" alt="{{ product.name }}">
+            </div>
+            <div class="card-price-badge">₹ {{ product.price }}</div>
+          </div>
+          <div class="card-body text-center pb-0">
+            <h5 class="card-title fw-bold text-truncate">{{ product.name }}</h5>
+            <div class="d-flex justify-content-center align-items-center mb-3">
+              <div class="rating">
+                {% for i in "12345" %}
+                  {% if forloop.counter <= product.rating|default:5 %}
+                    <i class="fas fa-star text-warning"></i>
+                  {% else %}
+                    <i class="far fa-star text-warning"></i>
+                  {% endif %}
+                {% endfor %}
+              </div>
+              <small class="text-muted ms-2">(24)</small>
+            </div>
+          </div>
+          <div class="card-footer bg-transparent border-0 pt-0">
+            <a href="{% url 'add_to_cart' product.name %}" class="btn btn-success w-100 rounded-pill">
+              <i class="fas fa-cart-plus me-2"></i>Add to Cart
+            </a>
+            <a href="{% url 'product_detail' product.name %}" class="btn btn-outline-primary w-100 rounded-pill mt-2">
+              <i class="fas fa-eye me-2"></i>View Details
+            </a>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="col-12 text-center py-5">
+        <i class="fas fa-box-open fs-1 text-muted mb-3"></i>
+        <h4 class="text-muted">No products found</h4>
+        <p class="text-muted">Check back later for new products!</p>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- 🔹 New Product Notification -->
+{% if new_product_added %}
+  <div class="alert alert-success alert-dismissible fade show fixed-bottom m-3" role="alert" style="z-index: 1100;">
+    <i class="fas fa-check-circle me-2"></i>
+    <strong>{{ new_product_added }}</strong> has been added to your cart!
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+{% endif %}
+
+<!-- 🔹 Enhanced Footer Banner -->
+<div class="footer-banner">
+  <div class="container">
+    <div class="d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center">
+        <i class="fas fa-bolt me-2"></i>
+        <span>Welcome to TaskPro — Shop the best products today!</span>
+      </div>
+      <div>
+        <span class="badge bg-light text-dark">Products: {{ products|length }}</span>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- JavaScript to Trigger Toast -->
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const newProduct = "{{ new_product_added|escapejs }}";
-    const toastElement = document.getElementById('cartToast');
-    const toast = new bootstrap.Toast(toastElement);
-
-    if (newProduct && newProduct !== "None") {
-      toastElement.querySelector('.toast-body').textContent = `${newProduct} added to cart successfully!`;
-      toast.show();
-    }
-  });
-</script>
-
-<!-- Custom CSS -->
 <style>
-.banner-img {
-  height: 60px;              /* Fixed height (like navbar) */
-  width: auto;               /* Keep original image width */
-  object-fit: contain;       /* Don't crop image */
+/* 🔹 Import Font Awesome */
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
+/* 🔹 Enhanced Slim Top Banner */
+.top-banner {
+  width: 100%;
+  max-height: 180px;
+  overflow: hidden;
+  border-radius: 16px;
+  margin: 0 auto 2rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+.top-banner img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
   display: block;
-  margin: 0 auto;            /* Center image horizontally */
-  background-color: #000;    /* Optional: background fill */
+}
+.top-banner .carousel-caption {
+  background: rgba(0,0,0,0.5);
+  border-radius: 12px;
+  padding: 10px 20px;
+  backdrop-filter: blur(5px);
 }
 
-.carousel-item {
-  text-align: center;   /* Center the image if it's not full-width */
+/* 🔹 Gradient Text */
+.gradient-text {
+  background: linear-gradient(45deg, #0d6efd, #6610f2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 🔹 Enhanced Product Cards */
+.product-card {
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  background: #fff;
+  position: relative;
+}
+.product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.1) !important;
+}
+.card-img-top-container {
+  height: 220px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+}
+.card-img-top-container img {
+  max-height: 85%;
+  max-width: 85%;
+  object-fit: contain;
+  transition: transform 0.5s ease;
+}
+.product-card:hover .card-img-top-container img {
+  transform: scale(1.08);
+}
+.card-price-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(13, 110, 253, 0.9);
+  color: white;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  backdrop-filter: blur(4px);
+}
+.rating { font-size: 0.8rem; }
+
+/* 🔹 Enhanced Footer Banner */
+.footer-banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  background: linear-gradient(90deg, #0d6efd, #0dcaf0);
+  color: #fff;
+  font-weight: 500;
+  padding: 12px 0;
+  font-size: 1rem;
+  z-index: 1050;
+  border-top: 1px solid rgba(255,255,255,0.2);
+  backdrop-filter: blur(10px);
+}
+
+/* 🔹 Enhanced Search Dropdown */
+#searchDropdown {
+  max-height: 280px;
+  overflow-y: auto;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  padding: 0.75rem;
+  z-index: 1100;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+#searchDropdown li {
+  cursor: default;
+  background: #fff;
+  margin-bottom: 8px;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 12px;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+#searchDropdown li:hover {
+  background: #f8f9fa;
+  transform: translateX(5px);
+}
+#searchDropdown img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+#searchDropdown .product-info {
+  flex-grow: 1;
+}
+#searchDropdown .product-name {
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+#searchDropdown .product-price {
+  color: #0d6efd;
+  font-weight: bold;
+  margin: 2px 0 8px 0;
+}
+#searchDropdown .btn-group {
+  display: flex;
+  gap: 6px;
+}
+
+/* 🔹 Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, #0d6efd, #0dcaf0);
+  border-radius: 10px;
+}
+
+/* 🔹 Highlight for filtered products */
+.product-highlight {
+  background-color: rgba(13, 110, 253, 0.05) !important;
+  border: 2px solid #0d6efd !important;
+}
+
+/* 🔹 Animation for cards */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.product-col {
+  animation: fadeIn 0.5s ease forwards;
+  animation-delay: calc(var(--delay, 0) * 0.1s);
+}
+
+/* 🔹 Responsive adjustments */
+@media (max-width: 768px) {
+  .top-banner { max-height: 140px; }
+  .top-banner img { height: 140px; }
+  .card-img-top-container { height: 180px; }
+  .footer-banner .container > div {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
 }
 </style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const searchInput = document.getElementById("searchProductInput");
+  const resultsList = document.getElementById("searchDropdown");
+  const productGrid = document.getElementById("productGrid");
+  const priceFilterInput = document.getElementById("priceFilter");
+  const applyFilterBtn = document.getElementById("applyFilterBtn");
+  const clearFiltersBtn = document.getElementById("clearFiltersBtn");
+
+  // Pass URL patterns to JavaScript
+  const addToCartBaseUrl = "{% url 'add_to_cart' 'placeholder' %}".replace('placeholder', '');
+  const productDetailBaseUrl = "{% url 'product_detail' 'placeholder' %}".replace('placeholder', '');
+
+  // Initialize tooltips if any
+  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+  });
+
+  // Add animation delays to product cards
+  document.querySelectorAll('.product-col').forEach((card, index) => {
+    card.style.setProperty('--delay', index);
+  });
+
+  // Store original products for filtering
+  const originalProducts = Array.from(productGrid.querySelectorAll(".product-col"));
+
+  // Function to filter products
+  function filterProducts() {
+    const searchQuery = searchInput.value.trim().toLowerCase();
+    const maxPrice = parseFloat(priceFilterInput.value);
+
+    originalProducts.forEach(product => {
+      const price = parseFloat(product.dataset.price);
+      const name = product.dataset.name;
+
+      const matchesSearch = searchQuery === '' || name.includes(searchQuery);
+      const matchesPrice = isNaN(maxPrice) || price <= maxPrice;
+
+      if (matchesSearch && matchesPrice) {
+        product.style.display = "";
+        if (searchQuery !== '') {
+          product.querySelector('.product-card').classList.add('product-highlight');
+        } else {
+          product.querySelector('.product-card').classList.remove('product-highlight');
+        }
+      } else {
+        product.style.display = "none";
+        product.querySelector('.product-card').classList.remove('product-highlight');
+      }
+    });
+  }
+
+  // Clear all filters
+  function clearAllFilters() {
+    searchInput.value = "";
+    priceFilterInput.value = "";
+    resultsList.style.display = "none";
+    originalProducts.forEach(product => {
+      product.style.display = "";
+      product.querySelector('.product-card').classList.remove('product-highlight');
+    });
+  }
+
+  // Fetch live search results
+  searchInput.addEventListener("keyup", function() {
+    const query = this.value.trim();
+    filterProducts();
+
+    if (query.length < 2) {
+      resultsList.style.display = "none";
+      return;
+    }
+
+    fetch("{% url 'search_products' %}?q=" + encodeURIComponent(query))
+      .then(res => res.json())
+      .then(data => {
+        resultsList.innerHTML = "";
+        if (data.results.length === 0) {
+          const li = document.createElement("li");
+          li.className = "text-center text-muted py-3";
+          li.innerHTML = '<i class="fas fa-search me-2"></i> No products found';
+          resultsList.appendChild(li);
+          resultsList.style.display = "block";
+          return;
+        }
+
+        data.results.forEach(product => {
+          const urgencyName = encodeURIComponent(product.name);
+          const addToCartUrl = `${addToCartBaseUrl}${encodedName}/`;
+          const productDetailUrl = `${productDetailBaseUrl}${encodedName}/`;
+          const li = document.createElement("li");
+          li.innerHTML = `
+            <img src="${product.image_path || '/static/images/default.png'}" alt="${product.name}">
+            <div class="product-info">
+              <p class="product-name text-truncate mb-1">${product.name}</p>
+              <p class="product-price">₹ ${parseFloat(product.price).toFixed(2)}</p>
+              <div class="btn-group">
+                <a href="${addToCartUrl}" class="btn btn-success btn-sm">
+                  <i class="fas fa-cart-plus"></i> Add
+                </a>
+                <a href="${productDetailUrl}" class="btn btn-outline-primary btn-sm">
+                  <i class="fas fa-eye"></i> View
+                </a>
+              </div>
+            </div>
+          `;
+          resultsList.appendChild(li);
+        });
+        resultsList.style.display = "block";
+      });
+  });
+
+  applyFilterBtn.addEventListener("click", filterProducts);
+  clearFiltersBtn.addEventListener("click", clearAllFilters);
+
+  document.addEventListener("click", function(event) {
+    if (!resultsList.contains(event.target) && event.target !== searchInput) {
+      resultsList.style.display = "none";
+    }
+  });
+
+  // Show cart notification if new product added
+  const newProduct = "{{ new_product_added|escapejs }}";
+  if (newProduct && newProduct !== "None") {
+    const alert = document.querySelector('.alert-success');
+    if (alert) {
+      alert.classList.add('show');
+    }
+  }
+});
+</script>
 
 {% endblock %}
