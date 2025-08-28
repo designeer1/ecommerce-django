@@ -35,4 +35,8 @@ path("subcategories/update_rating/", views.update_subcategory_rating, name="upda
     path("login/", views.login_view, name="login"),
     path("register/", views.register_view, name="register"),
     path("logout/", views.logout, name="logout"),
+
+
+     path('export-categories/', views.export_categories, name='export_categories'),
+    path('import-categories/', views.import_categories, name='import_categories'),
 ]

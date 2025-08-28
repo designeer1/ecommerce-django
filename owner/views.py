@@ -194,6 +194,9 @@ def manage_category(request):
     form = CategoryForm()
     data = load_data()
     email = request.session.get("email")
+    
+    # Check for import status in session
+    import_status = request.session.pop('import_status', None)
 
     if request.method == "POST":
         form = CategoryForm(request.POST, request.FILES)
@@ -217,6 +220,7 @@ def manage_category(request):
         "form": form,
         "q": q,
         "sort": sort,
+        "import_status": import_status,  # Pass import status to template
     })
 
 def delete_category(request, cat_name):
@@ -664,6 +668,7 @@ def manage_products(request):
         "products": enriched_products
     })
 
+# owner/views.py
 def delete_product(request, product_name):
     data = load_data()
     email = request.session.get("email")
@@ -674,6 +679,7 @@ def delete_product(request, product_name):
     products = user_data_email["products"]
     subcategories = user_data_email["subcategories"]
 
+    # Delete from products array
     for i, p in enumerate(products):
         if p["name"] == product_name:
             if p.get("image_path") and "/default.png" not in p["image_path"]:
@@ -681,11 +687,25 @@ def delete_product(request, product_name):
                 if os.path.exists(full_path):
                     os.remove(full_path)
             del products[i]
-            for cat, subs in subcategories.items():
-                subcategories[cat] = [sc for sc in subs if sc["name"] != product_name]
-            save_data(data)
             break
+    
+    # Delete from subcategories
+    for cat, subs in subcategories.items():
+        for i, sc in enumerate(subs):
+            if sc["name"] == product_name:
+                if sc.get("image") and "/default.png" not in sc["image"]:
+                    full_path = os.path.join(settings.MEDIA_ROOT, sc["image"].replace("/media/", ""))
+                    if os.path.exists(full_path):
+                        os.remove(full_path)
+                del subs[i]
+                break
 
+    save_data(data)
+    
+    # Clear cache if you're using any
+    from django.core.cache import cache
+    cache.clear()
+    
     return redirect("manage_products")
 
 def edit_product(request, old_name):
@@ -767,3 +787,130 @@ def get_all_categories_and_subcategories():
         categories[cat] = sorted(list(categories[cat]))
 
     return categories
+
+
+import csv
+from django.http import HttpResponse
+from django.contrib import messages
+from io import TextIOWrapper, StringIO
+
+# Add to your views.py
+
+def export_categories(request):
+    # Create a CSV response
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="categories_export.csv"'
+    
+    # Create a CSV writer
+    writer = csv.writer(response)
+    
+    # Write headers
+    writer.writerow(['Name', 'Description', 'Image Path'])
+    
+    # Get all categories
+    categories = Category.objects.all().order_by('name')
+    
+    # Write category data
+    for category in categories:
+        image_path = category.image.path if category.image else ''
+        writer.writerow([category.name, category.description or '', image_path])
+    
+    return response
+
+import csv
+from django.http import HttpResponse
+from django.contrib import messages
+from io import TextIOWrapper, StringIO
+import os
+from django.core.files import File
+
+def import_categories(request):
+    if request.method == 'POST' and request.FILES.get('csv_file'):
+        csv_file = request.FILES['csv_file']
+        has_headers = request.POST.get('has_headers') == 'on'
+        
+        # Process the CSV file
+        try:
+            # Read the CSV file
+            decoded_file = TextIOWrapper(csv_file.file, encoding='utf-8')
+            reader = csv.reader(decoded_file)
+            
+            rows = list(reader)
+            if has_headers and rows:
+                rows = rows[1:]  # Skip header row
+            
+            success_count = 0
+            error_count = 0
+            errors = []
+            
+            for i, row in enumerate(rows):
+                if not row:  # Skip empty rows
+                    continue
+                    
+                if len(row) < 1:  # At least name is required
+                    error_count += 1
+                    errors.append(f"Row {i+1}: Missing required name field")
+                    continue
+                
+                name = row[0].strip()
+                description = row[1].strip() if len(row) > 1 else ''
+                image_path = row[2].strip() if len(row) > 2 else None
+                
+                if not name:
+                    error_count += 1
+                    errors.append(f"Row {i+1}: Category name cannot be empty")
+                    continue
+                
+                # Check if category already exists
+                try:
+                    category, created = Category.objects.get_or_create(
+                        name=name,
+                        defaults={'description': description}
+                    )
+                    
+                    # Handle image if provided
+                    if image_path and os.path.exists(image_path):
+                        with open(image_path, 'rb') as f:
+                            category.image.save(
+                                os.path.basename(image_path), 
+                                File(f), 
+                                save=True
+                            )
+                    
+                    if not created:
+                        # Update existing category
+                        category.description = description
+                        category.save()
+                    
+                    success_count += 1
+                except Exception as e:
+                    error_count += 1
+                    errors.append(f"Row {i+1}: Error saving category - {str(e)}")
+            
+            # Prepare status message
+            if error_count == 0:
+                status = {
+                    'type': 'success',
+                    'icon': 'check-circle',
+                    'message': f'Successfully imported {success_count} categories.'
+                }
+            else:
+                status = {
+                    'type': 'warning' if success_count > 0 else 'danger',
+                    'icon': 'exclamation-triangle',
+                    'message': f'Imported {success_count} categories with {error_count} errors.',
+                    'errors': errors[:10]  # Show first 10 errors only
+                }
+                
+            # Store status in session to display on page reload
+            request.session['import_status'] = status
+            
+        except Exception as e:
+            status = {
+                'type': 'danger',
+                'icon': 'exclamation-circle',
+                'message': f'Error processing CSV file: {str(e)}'
+            }
+            request.session['import_status'] = status
+    
+    return redirect('manage_category')
