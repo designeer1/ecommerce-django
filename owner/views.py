@@ -1323,3 +1323,161 @@ def update_subcategory_image(request):
             return JsonResponse({"success": False, "error": str(e)})
     
     return JsonResponse({"success": False, "error": "Invalid request method"})
+
+# owner/views.py - Update the manage_orders view and related order views
+
+def get_all_products():
+    """Helper function to get all products from JSON data"""
+    data = load_data()
+    all_products = []
+    
+    # Get products from all users (or just the current user if you prefer)
+    for email, user_data in data.get("user_data", {}).items():
+        # Get products from subcategories
+        subcategories = user_data.get("subcategories", {})
+        for category, products in subcategories.items():
+            for product in products:
+                product["category"] = category
+                # Ensure image path is properly formatted
+                if "image" in product and not product["image"].startswith("/media/"):
+                    product["image"] = f"/media/{product['image']}"
+                elif "image" not in product:
+                    product["image"] = "/media/products/default.png"
+                all_products.append(product)
+        
+        # Get products from products array
+        products = user_data.get("products", [])
+        for product in products:
+            if "image_path" in product and not product["image_path"].startswith("/media/"):
+                product["image_path"] = f"/media/{product['image_path']}"
+            elif "image_path" not in product:
+                product["image_path"] = "/media/products/default.png"
+            all_products.append(product)
+    
+    return all_products
+# owner/views.py
+
+# ... your existing imports ...
+
+# Add these imports at the top if not already present
+from django.contrib import messages
+from django.http import JsonResponse
+from django.db.models import Q
+from django.core.paginator import Paginator
+
+# ... your existing functions (login, register, dashboard, etc.) ...
+
+# PASTE THE ORDER MANAGEMENT FUNCTIONS HERE, AFTER YOUR EXISTING FUNCTIONS
+
+def manage_orders(request):
+    """View to manage all customer orders"""
+    email = request.session.get("email")
+    if not email:
+        return redirect("login")
+    
+    try:
+        from customer.models import CustomerOrder
+        orders = CustomerOrder.objects.all().order_by('-order_date')
+        
+        # Filter by status if requested
+        status_filter = request.GET.get('status', '')
+        if status_filter:
+            orders = orders.filter(status=status_filter)
+        
+        # Search functionality
+        search_query = request.GET.get('q', '')
+        if search_query:
+            orders = orders.filter(
+                Q(order_id__icontains=search_query) |
+                Q(user__username__icontains=search_query)
+            )
+        
+        # Pagination
+        paginator = Paginator(orders, 10)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        
+        # Use the correct template path - no owner/ prefix needed
+        return render(request, "orders.html", {
+            "page_obj": page_obj,
+            "status_filter": status_filter,
+            "search_query": search_query,
+            "status_choices": CustomerOrder.STATUS_CHOICES
+        })
+        
+    except ImportError:
+        # Use the correct template path - no owner/ prefix needed
+        return render(request, "orders.html", {
+            "error": "Customer orders not available. Please ensure the customer app is installed."
+        })
+# customer/views.py (or wherever your order_detail is)
+from django.templatetags.static import static
+
+def order_detail(request, order_id):
+    email = request.session.get("email")
+    if not email:
+        return redirect("login")
+
+    try:
+        from customer.models import CustomerOrder
+        order = CustomerOrder.objects.get(order_id=order_id)
+
+        # Get product images
+        all_products = get_all_products()
+        for product in order.products:
+            for p in all_products:
+                if p["name"] == product["name"]:
+                    product["image_path"] = p.get("image_path") or static("img/default.png")
+                    break
+            else:
+                product["image_path"] = static("img/default.png")  # ✅ safe fallback
+
+        # Progress tracking
+        status_choices = CustomerOrder.STATUS_CHOICES
+        status_index = next(
+            (i for i, (status_value, _) in enumerate(status_choices) if order.status == status_value),
+            0
+        )
+
+        return render(request, "order_detail.html", {
+            "order": order,
+            "status_choices": status_choices,
+            "status_index": status_index
+        })
+
+    except CustomerOrder.DoesNotExist:
+        messages.error(request, "Order not found")
+        return redirect("manage_orders")
+
+
+# owner/views.py - Update the update_order_status function
+def update_order_status(request, order_id):
+    """Update order status via AJAX"""
+    email = request.session.get("email")
+    if not email:
+        return JsonResponse({"success": False, "error": "Not authenticated"})
+    
+    if request.method == "POST":
+        try:
+            from customer.models import CustomerOrder
+            from django.utils import timezone
+            
+            order = CustomerOrder.objects.get(order_id=order_id)
+            new_status = request.POST.get("status")
+            
+            if new_status in dict(CustomerOrder.STATUS_CHOICES):
+                # Update status and timestamp
+                order.status = new_status
+                order.updated_at = timezone.now()
+                order.save()
+                
+                return JsonResponse({"success": True, "new_status": new_status})
+            else:
+                return JsonResponse({"success": False, "error": "Invalid status"})
+                
+        except CustomerOrder.DoesNotExist:
+            return JsonResponse({"success": False, "error": "Order not found"})
+        except ImportError:
+            return JsonResponse({"success": False, "error": "Customer orders not available"})
+    
+    return JsonResponse({"success": False, "error": "Invalid request method"})

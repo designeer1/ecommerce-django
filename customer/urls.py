@@ -36,4 +36,7 @@ urlpatterns = [
 
     # Individual product detail
     path('product/<str:product_name>/', views.product_detail, name='product_detail'),
+    # Add this URL pattern
+path('orders/history/', views.order_history, name='order_history'),
+
 ]

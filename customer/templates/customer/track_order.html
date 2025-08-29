@@ -1,3 +1,4 @@
+<!-- customer/templates/track_order.html -->
 {% extends "customer/base.html" %}
 {% block content %}
 
@@ -5,105 +6,165 @@
     {% if show_tracking %}
     <!-- Single Order Tracking View -->
     <div class="row justify-content-center">
-        <div class="col-lg-8">
+        <div class="col-lg-10">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 class="mb-0"><i class="bi bi-truck me-2"></i>Track Order #{{ order_id }}</h2>
-                <a href="{% url 'customer_home' %}" class="btn btn-outline-primary">
+                <h2 class="mb-0 fw-bold text-primary"><i class="bi bi-truck me-2"></i>Track Order #{{ specific_order.order_id }}</h2>
+                <a href="{% url 'customer_home' %}" class="btn btn-primary rounded-pill">
                     <i class="bi bi-arrow-left me-1"></i> Continue Shopping
                 </a>
             </div>
 
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-light">
-                    <h5 class="card-title mb-0">Order Status</h5>
+            {% if error %}
+            <div class="alert alert-danger rounded-4 shadow-sm">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
+                    <div>{{ error }}</div>
                 </div>
-                <div class="card-body">
-                    <div class="progress-container">
-                        <div class="progress-steps">
-                            {% for status in statuses %}
-                            <div class="step {% if forloop.counter0 <= current_status_index %}completed{% endif %}">
-                                <div class="step-icon">
-                                    {% if forloop.counter0 < current_status_index %}
-                                    <i class="bi bi-check-circle-fill"></i>
-                                    {% elif forloop.counter0 == current_status_index %}
-                                    <i class="bi bi-arrow-right-circle-fill"></i>
+            </div>
+            {% else %}
+            <!-- Order Status Progress -->
+            <div class="card rounded-4 shadow-sm border-0 mb-4 overflow-hidden">
+                <div class="card-header bg-gradient-primary text-white py-3">
+                    <h5 class="card-title mb-0 fw-semibold"><i class="bi bi-clock-history me-2"></i>Order Status</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="progress-container position-relative mb-4">
+                        <div class="progress-steps d-flex justify-content-between align-items-start">
+                            {% for status in status_timeline %}
+                            <div class="step position-relative text-center {% if status.completed %}completed{% endif %} {% if status.status == specific_order.status %}current{% endif %}" style="flex: 1;">
+                                <div class="step-icon mx-auto rounded-circle d-flex align-items-center justify-content-center mb-2 {% if status.completed %}bg-success text-white{% elif status.status == specific_order.status %}bg-primary text-white{% else %}bg-light text-muted{% endif %}" style="width: 50px; height: 50px;">
+                                    {% if status.completed %}
+                                    <i class="bi bi-check-lg fs-5"></i>
+                                    {% elif status.status == specific_order.status %}
+                                    <i class="bi bi-arrow-right fs-5"></i>
                                     {% else %}
-                                    <i class="bi bi-circle"></i>
+                                    <i class="bi bi-circle fs-5"></i>
                                     {% endif %}
                                 </div>
-                                <div class="step-label">{{ status }}</div>
+                                <div class="step-label fw-medium mt-1">{{ status.status_display }}</div>
+                                {% if status.timestamp %}
+                                <small class="step-time text-muted d-block mt-1">{{ status.timestamp|date:"M j, g:i a" }}</small>
+                                {% endif %}
                             </div>
                             {% endfor %}
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            {% if specific_order %}
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-light">
-                    <h5 class="card-title mb-0">Order Details</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Order Information</h6>
-                            <p><strong>Order ID:</strong> {{ specific_order.order_id }}</p>
-                            <p><strong>Order Date:</strong> {{ specific_order.order_date|date:"F j, Y" }}</p>
-                            <p><strong>Status:</strong> <span class="badge bg-info">{{ specific_order.payment_status }}</span></p>
+                        
+                        <!-- Progress line -->
+                        <div class="position-absolute top-50 start-0 end-0" style="z-index: -1; height: 3px;">
+                            <div class="progress h-100 bg-light">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: {% widthratio current_status_index|add:1 status_timeline|length 100 %}%;"></div>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <h6>Shipping Address</h6>
-                            <p>
-                                {{ specific_order.shipping_address.full_name }}<br>
-                                {{ specific_order.shipping_address.address }}<br>
-                                {{ specific_order.shipping_address.city }}, {{ specific_order.shipping_address.pincode }}<br>
-                                Phone: {{ specific_order.shipping_address.phone }}
-                            </p>
+                    </div>
+                    
+                    <!-- Current Status Badge with Refresh Button -->
+                    <div class="text-center mt-4">
+                        <div class="d-inline-flex align-items-center bg-light rounded-pill px-4 py-2">
+                            <span class="badge fs-6 me-3 rounded-pill shadow-sm 
+                                {% if specific_order.status == 'delivered' %}bg-success{% elif specific_order.status == 'cancelled' %}bg-danger{% else %}bg-info{% endif %}">
+                                <i class="bi bi-{% if specific_order.status == 'delivered' %}check-circle{% elif specific_order.status == 'cancelled' %}x-circle{% else %}arrow-repeat{% endif %} me-2"></i>
+                                Current Status: {{ specific_order.get_status_display }}
+                            </span>
+                            <button class="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center" onclick="refreshPage()">
+                                <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="card shadow-sm">
-                <div class="card-header bg-light">
-                    <h5 class="card-title mb-0">Order Items</h5>
+            <!-- Order Details -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card rounded-4 shadow-sm border-0 h-100">
+                        <div class="card-header bg-light py-3">
+                            <h5 class="card-title mb-0 fw-semibold"><i class="bi bi-receipt me-2"></i>Order Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between py-2 border-bottom">
+                                <span class="text-muted">Order ID:</span>
+                                <span class="fw-medium">#{{ specific_order.order_id }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between py-2 border-bottom">
+                                <span class="text-muted">Order Date:</span>
+                                <span>{{ specific_order.order_date|date:"F j, Y" }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between py-2 border-bottom">
+                                <span class="text-muted">Status:</span>
+                                <span class="badge bg-{% if specific_order.status == 'delivered' %}success{% elif specific_order.status == 'cancelled' %}danger{% else %}warning{% endif %} rounded-pill">
+                                    {{ specific_order.get_status_display }}
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between py-2">
+                                <span class="text-muted fw-medium">Total Amount:</span>
+                                <span class="fw-bold text-primary">₹{{ specific_order.grand_total }}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
+                
+                <div class="col-md-6">
+                    <div class="card rounded-4 shadow-sm border-0 h-100">
+                        <div class="card-header bg-light py-3">
+                            <h5 class="card-title mb-0 fw-semibold"><i class="bi bi-geo-alt me-2"></i>Shipping Address</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex align-items-start">
+                                <i class="bi bi-person-circle text-muted me-3 mt-1"></i>
+                                <div>
+                                    <strong>{{ specific_order.shipping_address.full_name }}</strong><br>
+                                    {{ specific_order.shipping_address.address }}<br>
+                                    {{ specific_order.shipping_address.city }}, {{ specific_order.shipping_address.pincode }}<br>
+                                    <i class="bi bi-telephone me-1"></i> {{ specific_order.shipping_address.phone }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Items -->
+            <div class="card rounded-4 shadow-sm border-0 mt-4">
+                <div class="card-header bg-light py-3">
+                    <h5 class="card-title mb-0 fw-semibold"><i class="bi bi-cart me-2"></i>Order Items</h5>
+                </div>
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table">
-                            <thead>
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
                                 <tr>
-                                    <th>Product</th>
-                                    <th>Quantity</th>
-                                    <th>Price</th>
-                                    <th>Total</th>
+                                    <th class="border-0 ps-4">Product</th>
+                                    <th class="border-0 text-center">Quantity</th>
+                                    <th class="border-0 text-end">Price</th>
+                                    <th class="border-0 text-end pe-4">Total</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for item in specific_order.products %}
                                 <tr>
-                                    <td>{{ item.name }}</td>
-                                    <td>{{ item.quantity }}</td>
-                                    <td>₹{{ item.price }}</td>
-                                    <td>₹{{ item.total }}</td>
+                                    <td class="ps-4">{{ item.name }}</td>
+                                    <td class="text-center">{{ item.quantity }}</td>
+                                    <td class="text-end">₹{{ item.price }}</td>
+                                    <td class="text-end pe-4">₹{{ item.total }}</td>
                                 </tr>
                                 {% endfor %}
-                                <tr class="table-secondary">
-                                    <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
-                                    <td><strong>₹{{ specific_order.total_amount }}</strong></td>
+                            </tbody>
+                            <tfoot>
+                                <tr class="border-top">
+                                    <td colspan="3" class="text-end fw-medium ps-4">Subtotal:</td>
+                                    <td class="text-end fw-medium pe-4">₹{{ specific_order.total_amount }}</td>
                                 </tr>
                                 {% if specific_order.discount_amount > 0 %}
-                                <tr class="table-success">
-                                    <td colspan="3" class="text-end"><strong>Discount:</strong></td>
-                                    <td><strong>-₹{{ specific_order.discount_amount }}</strong></td>
+                                <tr class="text-success">
+                                    <td colspan="3" class="text-end fw-medium ps-4">Discount:</td>
+                                    <td class="text-end fw-medium pe-4">-₹{{ specific_order.discount_amount }}</td>
                                 </tr>
                                 {% endif %}
-                                <tr class="table-primary">
-                                    <td colspan="3" class="text-end"><strong>Grand Total:</strong></td>
-                                    <td><strong>₹{{ specific_order.grand_total }}</strong></td>
+                                <tr class="bg-light fw-bold">
+                                    <td colspan="3" class="text-end fs-5 ps-4">Grand Total:</td>
+                                    <td class="text-end fs-5 pe-4">₹{{ specific_order.grand_total }}</td>
                                 </tr>
-                            </tbody>
+                            </tfoot>
                         </table>
                     </div>
                 </div>
@@ -115,8 +176,8 @@
     {% else %}
     <!-- Order History View -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0"><i class="bi bi-list-check me-2"></i>Your Orders</h2>
-        <a href="{% url 'customer_home' %}" class="btn btn-outline-primary">
+        <h2 class="mb-0 fw-bold text-primary"><i class="bi bi-list-check me-2"></i>Your Orders</h2>
+        <a href="{% url 'customer_home' %}" class="btn btn-primary rounded-pill">
             <i class="bi bi-arrow-left me-1"></i> Continue Shopping
         </a>
     </div>
@@ -125,21 +186,23 @@
     <div class="row">
         {% for order in orders %}
         <div class="col-md-6 col-lg-4 mb-4">
-            <div class="card h-100 shadow-sm">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span class="badge bg-{% if order.payment_status == 'Completed' %}success{% else %}warning{% endif %}">
-                        {{ order.payment_status }}
+            <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden">
+                <div class="card-header d-flex justify-content-between align-items-center bg-light py-3">
+                    <span class="badge bg-{% if order.status == 'delivered' %}success{% elif order.status == 'cancelled' %}danger{% else %}warning{% endif %} rounded-pill">
+                        {{ order.get_status_display }}
                     </span>
                     <small class="text-muted">#{{ order.order_id|slice:":8" }}...</small>
                 </div>
                 <div class="card-body">
-                    <h6 class="card-title">Order Placed</h6>
-                    <p class="card-text">{{ order.order_date|date:"F j, Y" }}</p>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="card-title text-muted mb-0">Order Placed</h6>
+                        <span class="text-dark fw-medium">{{ order.order_date|date:"M j, Y" }}</span>
+                    </div>
                     
-                    <h6 class="card-title mt-3">Items</h6>
-                    <ul class="list-unstyled">
+                    <h6 class="card-title text-muted mb-2">Items</h6>
+                    <ul class="list-unstyled mb-3">
                         {% for product in order.products|slice:":2" %}
-                        <li class="small">{{ product.quantity }} x {{ product.name }}</li>
+                        <li class="small text-dark">{{ product.quantity }} x {{ product.name }}</li>
                         {% endfor %}
                         {% if order.products|length > 2 %}
                         <li class="small text-muted">+{{ order.products|length|add:"-2" }} more items</li>
@@ -147,9 +210,9 @@
                     </ul>
                     
                     <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
-                        <strong class="text-primary">₹{{ order.grand_total }}</strong>
-                        <a href="{% url 'track_order' order_id=order.order_id %}" class="btn btn-sm btn-outline-secondary">
-                            Track Order
+                        <strong class="text-primary fs-5">₹{{ order.grand_total }}</strong>
+                        <a href="{% url 'track_order' order_id=order.order_id %}" class="btn btn-sm btn-primary rounded-pill">
+                            <i class="bi bi-eye me-1"></i> View Details
                         </a>
                     </div>
                 </div>
@@ -159,10 +222,12 @@
     </div>
     {% else %}
     <div class="text-center py-5">
-        <i class="bi bi-cart-x display-1 text-muted"></i>
-        <h3 class="mt-3">No orders yet</h3>
-        <p class="text-muted">You haven't placed any orders yet.</p>
-        <a href="{% url 'customer_home' %}" class="btn btn-primary mt-2">
+        <div class="bg-light rounded-circle d-inline-flex p-4 mb-4">
+            <i class="bi bi-cart-x display-4 text-muted"></i>
+        </div>
+        <h3 class="mt-3 fw-bold">No orders yet</h3>
+        <p class="text-muted mb-4">You haven't placed any orders yet.</p>
+        <a href="{% url 'customer_home' %}" class="btn btn-primary rounded-pill px-4 py-2">
             Start Shopping
         </a>
     </div>
@@ -171,67 +236,74 @@
 </div>
 
 <style>
-.progress-container {
-    padding: 20px 0;
-}
-
-.progress-steps {
-    display: flex;
-    justify-content: space-between;
-    position: relative;
-}
-
-.progress-steps::before {
-    content: '';
-    position: absolute;
-    top: 20px;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background-color: #e9ecef;
-    z-index: 1;
-}
-
-.step {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    position: relative;
-    z-index: 2;
-}
-
-.step-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 8px;
-    font-size: 1.2rem;
-}
-
-.step.completed .step-icon {
-    color: #198754;
-}
-
-.step:not(.completed) .step-icon {
-    color: #6c757d;
-}
-
-.step-label {
-    font-size: 0.875rem;
-    text-align: center;
-}
-
-.card {
-    transition: transform 0.2s;
-}
-
-.card:hover {
-    transform: translateY(-2px);
-}
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+    }
+    
+    .progress-steps .step {
+        z-index: 2;
+    }
+    
+    .card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.08) !important;
+    }
+    
+    .table th {
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+    }
+    
+    .step-icon {
+        transition: all 0.3s ease;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    
+    .step.current .step-icon {
+        transform: scale(1.15);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Animation for refresh button */
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .refreshing {
+        animation: spin 1s linear infinite;
+    }
 </style>
+
+<script>
+    function refreshPage() {
+        // Get the refresh button
+        const refreshBtn = document.querySelector('.btn-outline-primary');
+        const refreshIcon = refreshBtn.querySelector('i');
+        
+        // Add spinning animation
+        refreshIcon.classList.add('refreshing');
+        refreshBtn.disabled = true;
+        
+        // Reload the page after a short delay to show the animation
+        setTimeout(() => {
+            window.location.reload();
+        }, 800);
+    }
+    
+    // Add event listener for the refresh button
+    document.addEventListener('DOMContentLoaded', function() {
+        const refreshBtn = document.querySelector('.btn-outline-primary');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', refreshPage);
+        }
+    });
+</script>
 
 {% endblock %}

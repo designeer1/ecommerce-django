@@ -1,13 +1,14 @@
 from django.db import models
 from django.contrib.auth.models import User
-import uuid
-import os
+from django.utils import timezone
+import uuid, os
+
 
 def user_profile_pic_path(instance, filename):
-    # File will be uploaded to MEDIA_ROOT/user_<id>/profile_pics/<filename>
     ext = filename.split('.')[-1]
     filename = f"{uuid.uuid4()}.{ext}"
-    return os.path.join('user_{0}', 'profile_pics', filename).format(instance.user.id)
+    return os.path.join(f"user_{instance.user.id}", "profile_pics", filename)
+
 
 class CustomerProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -18,6 +19,7 @@ class CustomerProfile(models.Model):
     def __str__(self):
         return f"{self.user.username}'s Profile"
 
+
 class Product(models.Model):
     name = models.CharField(max_length=100)
     price = models.FloatField()
@@ -27,6 +29,7 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
+
 class Cart(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
@@ -34,13 +37,11 @@ class Cart(models.Model):
     
     @property
     def total_price(self):
-        if self.product:
-            return self.product.price * self.quantity
-        return 0
+        return self.product.price * self.quantity if self.product else 0
 
     def __str__(self):
-        product_name = self.product.name if self.product else "Unknown Product"
-        return f"Cart({self.user.username} - {product_name})"
+        return f"Cart({self.user.username} - {self.product.name if self.product else 'Unknown'})"
+
 
 class Coupon(models.Model):
     code = models.CharField(max_length=10, unique=True)
@@ -49,6 +50,7 @@ class Coupon(models.Model):
 
     def __str__(self):
         return self.code
+
 
 class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -65,8 +67,18 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Order {self.id} - {self.user.username}"
-    
+
+
+# ✅ Unified CustomerOrder
 class CustomerOrder(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('shipped', 'Shipped'),
+        ('delivered', 'Delivered'),
+        ('cancelled', 'Cancelled'),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     order_id = models.CharField(max_length=100, unique=True)
     products = models.JSONField()
@@ -74,8 +86,21 @@ class CustomerOrder(models.Model):
     discount_amount = models.FloatField(default=0)
     grand_total = models.FloatField()
     shipping_address = models.JSONField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     order_date = models.DateTimeField(auto_now_add=True)
     payment_status = models.CharField(max_length=20, default="Completed")
-    
+
     def __str__(self):
-        return f"Order {self.order_id} - {self.user.username}"
+        return f"Order {self.order_id} - {self.user.username} - {self.status}"
+
+    def get_status_timeline(self):
+        return self.orderstatushistory_set.order_by("changed_at")
+
+
+class OrderStatusHistory(models.Model):
+    order = models.ForeignKey(CustomerOrder, on_delete=models.CASCADE)
+    status = models.CharField(max_length=20, choices=CustomerOrder.STATUS_CHOICES)
+    changed_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.order.order_id} - {self.status} at {self.changed_at}"

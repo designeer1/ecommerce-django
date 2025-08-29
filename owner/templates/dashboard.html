@@ -5,6 +5,7 @@
   <p>Manage your categories, subcategories, and products from one central location</p>
 </div>
 
+<!-- In your dashboard.html -->
 <div class="row g-4">
   <!-- Categories Card -->
   <div class="col-md-4">
@@ -49,6 +50,22 @@
         <p class="card-text">Add, edit, and manage all your products in one convenient location.</p>
         <a href="{% url 'manage_products' %}" class="btn btn-primary nav-btn">
           <i class="bi bi-arrow-right me-2"></i> Manage Products
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Orders Card -->
+  <div class="col-md-4">
+    <div class="dashboard-card card">
+      <div class="card-body text-center p-4">
+        <div class="card-icon text-success">
+          <i class="bi bi-cart-check"></i>
+        </div>
+        <h3 class="card-title">Orders</h3>
+        <p class="card-text">View and manage customer orders, update status, and track deliveries.</p>
+        <a href="{% url 'manage_orders' %}" class="btn btn-success nav-btn">
+          <i class="bi bi-arrow-right me-2"></i> Manage Orders
         </a>
       </div>
     </div>

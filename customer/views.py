@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect,get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib import messages
@@ -563,42 +563,28 @@ def download_invoice_pdf(request):
     return response
 
 def track_order(request, order_id=None):
-    # If order_id is provided, show tracking for that specific order
-    if order_id:
-        statuses = [
-            "Order Placed",
-            "Processing",
-            "Shipped",
-            "Out for Delivery",
-            "Delivered"
-        ]
-        current_status_index = 1
-        
-        # Try to get the order from database
-        try:
-            order = CustomerOrder.objects.get(order_id=order_id)
-        except CustomerOrder.DoesNotExist:
-            order = None
-        
-        return render(request, "customer/track_order.html", {
-            "order_id": order_id,
-            "statuses": statuses,
-            "current_status_index": current_status_index,
-            "specific_order": order,
-            "show_tracking": True
-        })
-    
-    # If no order_id provided, show order history
     if not request.user.is_authenticated:
-        messages.error(request, "Please login to view your order history")
+        messages.error(request, "Please login to track orders")
         return redirect("customer_login")
-    
+
+    if order_id:
+        order = get_object_or_404(CustomerOrder, order_id=order_id, user=request.user)
+        timeline = order.get_status_timeline()
+
+        return render(request, "customer/track_order.html", {
+            "show_tracking": True,
+            "order_id": order_id,
+            "specific_order": order,
+            "timeline": timeline,
+        })
+
+    # fallback → show order history list
     orders = CustomerOrder.objects.filter(user=request.user).order_by('-order_date')
-    
     return render(request, "customer/track_order.html", {
+        "show_tracking": False,
         "orders": orders,
-        "show_tracking": False
     })
+
 def order_success(request):
     order_id = "order_R9KM15eIvDUlE2"
     return render(request, "customer/order_success.html", {
@@ -614,4 +600,36 @@ def order_history(request):
     
     return render(request, "customer/order_history.html", {
         "orders": orders
+    })
+
+# Add this import at the top
+from django.core.paginator import Paginator
+
+def order_history(request):
+    if not request.user.is_authenticated:
+        messages.error(request, "Please login to view your order history")
+        return redirect("customer_login")
+    
+    orders = CustomerOrder.objects.filter(user=request.user).order_by('-order_date')
+    
+    # Add pagination (10 orders per page)
+    paginator = Paginator(orders, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Get product images for each order
+    all_products = get_all_products()
+    for order in page_obj:
+        for product in order.products:
+            # Find the product image
+            for p in all_products:
+                if p["name"] == product["name"]:
+                    product["image_path"] = p.get("image_path", "/media/products/default.png")
+                    break
+            else:
+                product["image_path"] = "/media/products/default.png"
+    
+    return render(request, "customer/order_history.html", {
+        "page_obj": page_obj,
+        "orders_count": orders.count()
     })

@@ -1,0 +1,292 @@
+
+
+<!-- owner/templates/order_detail.html -->
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="dashboard-header d-flex justify-content-between align-items-center">
+  <div>
+    <h1>Order #{{ order.order_id }}</h1>
+    <p>Order details and status management</p>
+  </div>
+  <a href="{% url 'manage_orders' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Back to Orders
+  </a>
+</div>
+
+<div class="row">
+  <!-- Order Details -->
+  <div class="col-md-8">
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Order Items</h5>
+      </div>
+      <div class="card-body">
+        {% for product in order.products %}
+        <div class="d-flex align-items-center mb-3 p-3 border-bottom">
+          <!-- REMOVED THE PROBLEMATIC IMAGE CODE -->
+          <div class="flex-grow-1">
+            <h6 class="mb-1">{{ product.name }}</h6>
+            <div class="d-flex justify-content-between">
+              <small class="text-muted">Quantity: {{ product.quantity }}</small>
+              <span class="text-dark fw-semibold">₹{{ product.total }}</span>
+            </div>
+            <small class="text-muted">₹{{ product.price }} each</small>
+          </div>
+        </div>
+        {% endfor %}
+        
+        <div class="mt-4 pt-3 border-top">
+          <div class="d-flex justify-content-between mb-2">
+            <span>Subtotal:</span>
+            <span>₹{{ order.total_amount }}</span>
+          </div>
+          {% if order.discount_amount > 0 %}
+          <div class="d-flex justify-content-between mb-2 text-success">
+            <span>Discount:</span>
+            <span>-₹{{ order.discount_amount }}</span>
+          </div>
+          {% endif %}
+          <div class="d-flex justify-content-between mb-2">
+            <span>Shipping:</span>
+            <span>FREE</span>
+          </div>
+          <div class="d-flex justify-content-between mb-3 pt-2 border-top fw-bold">
+            <span>Total:</span>
+            <span class="text-success">₹{{ order.grand_total }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Shipping Address -->
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Shipping Details</h5>
+      </div>
+      <div class="card-body">
+        <address>
+          <strong>{{ order.shipping_address.full_name }}</strong><br>
+          {{ order.shipping_address.address }}<br>
+          {{ order.shipping_address.city }}, {{ order.shipping_address.pincode }}<br>
+          <i class="bi bi-telephone"></i> {{ order.shipping_address.phone }}
+        </address>
+        
+        <div class="mt-3">
+          <strong>Order Date:</strong> {{ order.order_date|date:"F j, Y, g:i a" }}<br>
+          <strong>Last Updated:</strong> {{ order.updated_at|date:"F j, Y, g:i a"|default:order.order_date|date:"F j, Y, g:i a" }}
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Status Management -->
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Order Status</h5>
+      </div>
+      <div class="card-body">
+        <!-- Status Progress -->
+        <div class="progress-container mb-4">
+          <div class="progress-steps">
+            {% for status_value, status_name in status_choices %}
+            <div class="step {% if order.status == status_value %}current{% elif forloop.counter0 <= status_index %}completed{% endif %}">
+              <div class="step-icon">
+                {% if order.status == status_value %}
+                <i class="bi bi-arrow-right-circle-fill text-primary"></i>
+                {% elif forloop.counter0 < status_index %}
+                <i class="bi bi-check-circle-fill text-success"></i>
+                {% else %}
+                <i class="bi bi-circle text-muted"></i>
+                {% endif %}
+              </div>
+              <div class="step-label">{{ status_name }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        
+        <!-- Status Update Form -->
+        <form method="POST" action="{% url 'update_order_status' order.order_id %}" id="statusForm">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="status" class="form-label">Update Status</label>
+            <select class="form-select" id="status" name="status">
+              {% for status_value, status_name in status_choices %}
+              <option value="{{ status_value }}" {% if order.status == status_value %}selected{% endif %}>
+                {{ status_name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-check-circle"></i> Update Status
+          </button>
+        </form>
+        
+        <!-- Customer Info -->
+        <div class="mt-4 pt-3 border-top">
+          <h6>Customer Information</h6>
+          <p class="mb-1">
+            <strong>Username:</strong> {{ order.user.username }}<br>
+            <strong>Email:</strong> {{ order.user.email }}<br>
+            <strong>Order Count:</strong> {{ order.user.orders.count }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.progress-container {
+  padding: 20px 0;
+}
+
+.progress-steps {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+}
+
+.progress-steps::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background-color: #e9ecef;
+  z-index: 1;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  flex: 1;
+}
+
+.step-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  font-size: 1.2rem;
+  border: 2px solid #e9ecef;
+}
+
+.step.completed .step-icon {
+  color: #198754 !important;
+  border-color: #198754;
+}
+
+.step.current .step-icon {
+  color: #0d6efd !important;
+  border-color: #0d6efd;
+}
+
+.step:not(.completed):not(.current) .step-icon {
+  color: #6c757d !important;
+}
+
+.step-label {
+  font-size: 0.75rem;
+  text-align: center;
+  max-width: 80px;
+  font-weight: 500;
+}
+
+/* Progress bar fill */
+.progress-steps::after {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 0;
+  height: 4px;
+  background-color: #0d6efd;
+  z-index: 1;
+  width: {% widthratio status_index|add:1 status_choices|length 100 %}%;
+  transition: width 0.3s ease;
+}
+</style>
+
+<script>
+// AJAX form submission for better UX
+document.getElementById('statusForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  
+  const form = this;
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const originalText = submitBtn.innerHTML;
+  
+  // Show loading state
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
+  
+  try {
+    const formData = new FormData(form);
+    const response = await fetch(form.action, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      // Show success message
+      showAlert('Status updated successfully!', 'success');
+      
+      // Reload the page to reflect changes
+      setTimeout(() => {
+        location.reload();
+      }, 1000);
+    } else {
+      showAlert('Error: ' + result.error, 'danger');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+    }
+  } catch (error) {
+    showAlert('Error updating status: ' + error.message, 'danger');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalText;
+  }
+});
+
+function showAlert(message, type) {
+  // Remove existing alerts
+  const existingAlerts = document.querySelectorAll('.alert');
+  existingAlerts.forEach(alert => alert.remove());
+  
+  // Create new alert
+  const alert = document.createElement('div');
+  alert.className = `alert alert-${type} alert-dismissible fade show`;
+  alert.innerHTML = `
+    ${message}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  `;
+  
+  // Insert at the top of the content
+  const content = document.querySelector('.content-wrapper');
+  content.insertBefore(alert, content.firstChild);
+  
+  // Auto dismiss after 3 seconds
+  setTimeout(() => {
+    if (alert.parentNode) {
+      alert.remove();
+    }
+  }, 3000);
+}
+</script>
+
+{% endblock %}

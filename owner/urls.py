@@ -38,16 +38,16 @@ urlpatterns = [
     # -------------------- Import/Export --------------------
     path('export-categories/', views.export_categories, name='export_categories'),
     path('import-categories/', views.import_categories, name='import_categories'),
+    path('export-subcategories/', views.export_subcategories, name='export_subcategories'),
+    path('import-subcategories/', views.import_subcategories, name='import_subcategories'),
+    path('update-subcategory-image/', views.update_subcategory_image, name='update_subcategory_image'),
 
+    # -------------------- Profile --------------------
+    path('profile/', views.profile_view, name='profile'),
+    path('update-profile/', views.update_profile, name='update_profile'),
 
-    # subcategory\import\export
-path('export-subcategories/', views.export_subcategories, name='export_subcategories'),
-path('import-subcategories/', views.import_subcategories, name='import_subcategories'),
-path('update-subcategory-image/', views.update_subcategory_image, name='update_subcategory_image'),
-
-
-# Add these to your urlpatterns in urls.py
-path('profile/', views.profile_view, name='profile'),
-path('update-profile/', views.update_profile, name='update_profile'),
-
+    # -------------------- Order Management --------------------
+    path('orders/', views.manage_orders, name='manage_orders'),
+    path('orders/<str:order_id>/', views.order_detail, name='order_detail'),
+    path('orders/<str:order_id>/update-status/', views.update_order_status, name='update_order_status'),
 ]
