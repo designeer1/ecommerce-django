@@ -50,6 +50,7 @@ def save_data(data):
     except Exception as e:
         logger.error(f"Error saving data.json: {str(e)}")
 
+
 # -------------------- Image Validation --------------------
 def validate_image(image):
     valid_extensions = ['.jpg', '.jpeg', '.png']
@@ -64,12 +65,16 @@ def login_view(request):
     data = load_data()
     users = data['users']
     user_data = data['user_data']
+    
     if request.method == "POST":
         email = request.POST.get("email")
         password = request.POST.get("password")
+        
         if email in users and users[email]["password"] == password:
             request.session["username"] = users[email]["username"]
             request.session["email"] = email
+            request.session["profile_picture"] = users[email].get("profile_picture", "/media/profiles/default.png")
+            
             if email not in user_data:
                 user_data[email] = {
                     "categories": ["mens", "women", "baby"],
@@ -80,21 +85,49 @@ def login_view(request):
             return redirect("dashboard")
         else:
             return render(request, "login.html", {"msg": "Invalid email or password"})
+    
     return render(request, "login.html", {"msg": ""})
 
 def register_view(request):
     data = load_data()
     users = data['users']
     user_data = data['user_data']
+    
     if request.method == "POST":
         username = request.POST.get("username")
         email = request.POST.get("email")
         password = request.POST.get("password")
+        profile_picture = request.FILES.get("profile_picture")
+        
         if email in users:
             return render(request, "register.html", {"msg": "Email already registered"})
         if not username or not email or not password:
             return render(request, "register.html", {"msg": "All fields are required"})
-        users[email] = {"username": username, "password": password}
+        
+        # Handle profile picture upload
+        profile_pic_path = "/media/profiles/default.png"
+        if profile_picture:
+            try:
+                validate_image(profile_picture)
+                profile_dir = os.path.join(settings.MEDIA_ROOT, "profiles")
+                os.makedirs(profile_dir, exist_ok=True)
+                ext = os.path.splitext(profile_picture.name)[1]
+                unique_filename = f"{uuid.uuid4().hex}{ext}"
+                profile_path = os.path.join(profile_dir, unique_filename)
+                
+                with open(profile_path, "wb+") as dest:
+                    for chunk in profile_picture.chunks():
+                        dest.write(chunk)
+                
+                profile_pic_path = f"/media/profiles/{unique_filename}"
+            except ValidationError as e:
+                return render(request, "register.html", {"msg": str(e)})
+        
+        users[email] = {
+            "username": username, 
+            "password": password,
+            "profile_picture": profile_pic_path
+        }
         user_data[email] = {
             "categories": ["mens", "women", "baby"],
             "subcategories": {cat: [] for cat in ["mens", "women", "baby"]},
@@ -103,15 +136,94 @@ def register_view(request):
         save_data(data)
         logger.debug(f"Saved data after registration: {data}")
         return redirect("login")
+    
     return render(request, "register.html", {"msg": ""})
 
 def dashboard(request):
     return render(request, "dashboard.html")
 
 def logout(request):
-    request.session.pop("email", None)
-    request.session.pop("username", None)
+    request.session.flush()  # Clear all session data
     return redirect("dashboard")
+
+# Add these imports at the top
+from django.views.decorators.csrf import csrf_exempt
+
+# -------------------- Profile & Settings --------------------
+def profile_view(request):
+    email = request.session.get("email")
+    if not email:
+        return redirect("login")
+    
+    data = load_data()
+    users = data['users']
+    user_data = data['user_data']
+    
+    user_info = users.get(email, {})
+    
+    return render(request, "profile.html", {
+        "user_info": user_info,
+        "user_data": user_data.get(email, {})
+    })
+
+@csrf_exempt
+def update_profile(request):
+    email = request.session.get("email")
+    if not email:
+        return JsonResponse({"success": False, "error": "Not authenticated"})
+    
+    if request.method == "POST":
+        try:
+            data = load_data()
+            users = data['users']
+            
+            if email not in users:
+                return JsonResponse({"success": False, "error": "User not found"})
+            
+            username = request.POST.get("username")
+            profile_picture = request.FILES.get("profile_picture")
+            
+            # Update username if provided
+            if username:
+                users[email]["username"] = username
+                request.session["username"] = username
+            
+            # Handle profile picture update
+            if profile_picture:
+                try:
+                    validate_image(profile_picture)
+                    
+                    # Delete old profile picture if it's not the default
+                    old_picture = users[email].get("profile_picture", "")
+                    if old_picture and "/default.png" not in old_picture:
+                        full_path = os.path.join(settings.MEDIA_ROOT, old_picture.replace("/media/", ""))
+                        if os.path.exists(full_path):
+                            os.remove(full_path)
+                    
+                    # Save new profile picture
+                    profile_dir = os.path.join(settings.MEDIA_ROOT, "profiles")
+                    os.makedirs(profile_dir, exist_ok=True)
+                    ext = os.path.splitext(profile_picture.name)[1]
+                    unique_filename = f"{uuid.uuid4().hex}{ext}"
+                    profile_path = os.path.join(profile_dir, unique_filename)
+                    
+                    with open(profile_path, "wb+") as dest:
+                        for chunk in profile_picture.chunks():
+                            dest.write(chunk)
+                    
+                    users[email]["profile_picture"] = f"/media/profiles/{unique_filename}"
+                    request.session["profile_picture"] = f"/media/profiles/{unique_filename}"
+                    
+                except ValidationError as e:
+                    return JsonResponse({"success": False, "error": str(e)})
+            
+            save_data(data)
+            return JsonResponse({"success": True, "message": "Profile updated successfully"})
+            
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+    
+    return JsonResponse({"success": False, "error": "Invalid request method"})
 
 # -------------------- Search --------------------
 def search_view(request):
@@ -410,6 +522,7 @@ def manage_subcategory(request):
 
     # Update total count based on subcategories
     total_count = len(all_subcategories)
+    import_status = request.session.pop('import_status_subcategory', None)
 
     return render(request, "subcategory.html", {
         "categories": categories,
@@ -420,7 +533,8 @@ def manage_subcategory(request):
         "total_count": total_count,
         "current_category_filter": category_filter,
         "current_sort": sort_option,
-        "current_search": search_query
+        "current_search": search_query,
+        "import_status": import_status
     })
 
 def delete_subcategory(request, category, name):
@@ -961,3 +1075,251 @@ def get_category_details(request, cat_name):
         })
     except Category.DoesNotExist:
         return JsonResponse({'error': 'Category not found'}, status=404)
+    
+
+# Add these import statements at the top
+import pandas as pd
+from django.db import transaction
+
+# -------------------- Subcategory Import/Export --------------------
+def export_subcategories(request):
+    email = request.session.get("email")
+    if not email:
+        return redirect("login")
+    
+    data = load_data()
+    user_data_email = data['user_data'].get(email, {})
+    subcategories = user_data_email.get("subcategories", {})
+    
+    # Create a CSV response
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="subcategories_export.csv"'
+    
+    # Create a CSV writer
+    writer = csv.writer(response)
+    
+    # Write headers
+    writer.writerow(['Category', 'Subcategory', 'Product Name', 'Price', 'Description', 'Image Path'])
+    
+    # Write subcategory data
+    for category, subs in subcategories.items():
+        for sc in subs:
+            writer.writerow([
+                category,
+                sc.get("subcategory", ""),
+                sc.get("name", ""),
+                sc.get("price", 0),
+                sc.get("description", ""),
+                sc.get("image", "/media/products/default.png")
+            ])
+    
+    return response
+
+def import_subcategories(request):
+    email = request.session.get("email")
+    if not email:
+        return redirect("login")
+    
+    if request.method == 'POST' and request.FILES.get('csv_file'):
+        csv_file = request.FILES['csv_file']
+        has_headers = request.POST.get('has_headers') == 'on'
+        
+        # Process the CSV file
+        try:
+            # Read the CSV file
+            decoded_file = TextIOWrapper(csv_file.file, encoding='utf-8')
+            reader = csv.reader(decoded_file)
+            
+            rows = list(reader)
+            if has_headers and rows:
+                rows = rows[1:]  # Skip header row
+            
+            success_count = 0
+            error_count = 0
+            errors = []
+            
+            data = load_data()
+            user_data_email = data['user_data'].get(email, {})
+            subcategories = user_data_email.get("subcategories", {})
+            
+            for i, row in enumerate(rows):
+                if not row or all(cell.strip() == '' for cell in row):  # Skip empty rows
+                    continue
+                    
+                # Determine column positions (handle different CSV formats)
+                if len(row) >= 6:  # Full format: Category, Subcategory, Product Name, Price, Description, Image Path
+                    category = row[0].strip() if len(row) > 0 else ''
+                    subcategory_name = row[1].strip() if len(row) > 1 else ''
+                    product_name = row[2].strip() if len(row) > 2 else ''
+                    price = row[3].strip() if len(row) > 3 else '0'
+                    description = row[4].strip() if len(row) > 4 else ''
+                    image_path = row[5].strip() if len(row) > 5 else None
+                elif len(row) >= 3:  # Minimal format: Category, Product Name, Price
+                    category = row[0].strip() if len(row) > 0 else ''
+                    product_name = row[1].strip() if len(row) > 1 else ''
+                    price = row[2].strip() if len(row) > 2 else '0'
+                    subcategory_name = product_name  # Use product name as subcategory name
+                    description = ''
+                    image_path = None
+                else:
+                    error_count += 1
+                    errors.append(f"Row {i+1}: Invalid format - needs at least 3 columns")
+                    continue
+                
+                if not category or not product_name or not price:
+                    error_count += 1
+                    errors.append(f"Row {i+1}: Category, Product Name, and Price are required")
+                    continue
+                
+                try:
+                    # Check if product already exists in this category
+                    if category in subcategories and any(sc["name"] == product_name for sc in subcategories[category]):
+                        # Update existing subcategory
+                        for sc in subcategories[category]:
+                            if sc["name"] == product_name:
+                                sc["subcategory"] = subcategory_name
+                                sc["price"] = float(price)
+                                sc["description"] = description
+                                if image_path and os.path.exists(image_path):
+                                    try:
+                                        with open(image_path, 'rb') as f:
+                                            # For JSON data, we store the path, not the file
+                                            sc["image"] = f"/media/products/{os.path.basename(image_path)}"
+                                    except Exception as e:
+                                        errors.append(f"Row {i+1}: Error with image file - {str(e)}")
+                                break
+                        success_count += 1
+                    else:
+                        # Create new subcategory
+                        relative_path = "/media/products/default.png"
+                        if image_path and os.path.exists(image_path):
+                            try:
+                                # Copy image to media directory
+                                image_dir = os.path.join(settings.MEDIA_ROOT, "products")
+                                os.makedirs(image_dir, exist_ok=True)
+                                unique_filename = f"{uuid.uuid4().hex}{os.path.splitext(image_path)[1]}"
+                                destination_path = os.path.join(image_dir, unique_filename)
+                                
+                                # Copy the file
+                                import shutil
+                                shutil.copy2(image_path, destination_path)
+                                relative_path = f"/media/products/{unique_filename}"
+                            except Exception as e:
+                                errors.append(f"Row {i+1}: Error copying image file - {str(e)}")
+                        
+                        if category not in subcategories:
+                            subcategories[category] = []
+                            
+                        subcategories[category].append({
+                            "name": product_name,
+                            "subcategory": subcategory_name,
+                            "price": float(price),
+                            "description": description,
+                            "image": relative_path,
+                            "category": category,
+                            "rating": 0
+                        })
+                        success_count += 1
+                    
+                except Exception as e:
+                    error_count += 1
+                    errors.append(f"Row {i+1}: Error saving subcategory - {str(e)}")
+            
+            # Save the updated data
+            save_data(data)
+            
+            # Prepare status message
+            if error_count == 0:
+                status = {
+                    'type': 'success',
+                    'icon': 'check-circle',
+                    'message': f'Successfully imported {success_count} subcategories.'
+                }
+            else:
+                status = {
+                    'type': 'warning' if success_count > 0 else 'danger',
+                    'icon': 'exclamation-triangle',
+                    'message': f'Imported {success_count} subcategories with {error_count} errors.',
+                    'errors': errors[:10]  # Show first 10 errors only
+                }
+                
+            # Store status in session to display on page reload
+            request.session['import_status_subcategory'] = status
+            
+        except Exception as e:
+            status = {
+                'type': 'danger',
+                'icon': 'exclamation-circle',
+                'message': f'Error processing CSV file: {str(e)}'
+            }
+            request.session['import_status_subcategory'] = status
+    
+    return redirect('manage_subcategory')
+
+
+def update_subcategory_image(request):
+    email = request.session.get("email")
+    if not email:
+        return JsonResponse({"success": False, "error": "Not authenticated"})
+    
+    if request.method == "POST":
+        try:
+            category = request.POST.get("category")
+            name = request.POST.get("name")
+            image = request.FILES.get("image")
+            
+            if not category or not name:
+                return JsonResponse({"success": False, "error": "Category and name are required"})
+            
+            data = load_data()
+            user_data_email = data['user_data'].get(email, {})
+            subcategories = user_data_email.get("subcategories", {})
+            
+            if category not in subcategories:
+                return JsonResponse({"success": False, "error": "Category not found"})
+            
+            # Find the subcategory to update
+            subcategory_to_update = None
+            for sc in subcategories[category]:
+                if sc["name"] == name:
+                    subcategory_to_update = sc
+                    break
+            
+            if not subcategory_to_update:
+                return JsonResponse({"success": False, "error": "Subcategory not found"})
+            
+            # Handle image update
+            if image:
+                validate_image(image)
+                
+                # Delete old image if it's not the default
+                old_image = subcategory_to_update.get("image", "")
+                if old_image and "/default.png" not in old_image:
+                    full_path = os.path.join(settings.MEDIA_ROOT, old_image.replace("/media/", ""))
+                    if os.path.exists(full_path):
+                        os.remove(full_path)
+                
+                # Save new image
+                image_dir = os.path.join(settings.MEDIA_ROOT, "products")
+                os.makedirs(image_dir, exist_ok=True)
+                ext = os.path.splitext(image.name)[1]
+                unique_filename = f"{uuid.uuid4().hex}{ext}"
+                image_path = os.path.join(image_dir, unique_filename)
+                
+                with open(image_path, "wb+") as dest:
+                    for chunk in image.chunks():
+                        dest.write(chunk)
+                
+                subcategory_to_update["image"] = f"/media/products/{unique_filename}"
+                save_data(data)
+                
+                return JsonResponse({"success": True, "image_url": f"/media/products/{unique_filename}"})
+            else:
+                return JsonResponse({"success": False, "error": "No image provided"})
+                
+        except ValidationError as e:
+            return JsonResponse({"success": False, "error": str(e)})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+    
+    return JsonResponse({"success": False, "error": "Invalid request method"})
