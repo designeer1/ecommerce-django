@@ -2,6 +2,118 @@
 {% block content %}
 
 <div class="container py-5">
+    {% if show_tracking %}
+    <!-- Single Order Tracking View -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0"><i class="bi bi-truck me-2"></i>Track Order #{{ order_id }}</h2>
+                <a href="{% url 'customer_home' %}" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left me-1"></i> Continue Shopping
+                </a>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Order Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="progress-container">
+                        <div class="progress-steps">
+                            {% for status in statuses %}
+                            <div class="step {% if forloop.counter0 <= current_status_index %}completed{% endif %}">
+                                <div class="step-icon">
+                                    {% if forloop.counter0 < current_status_index %}
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    {% elif forloop.counter0 == current_status_index %}
+                                    <i class="bi bi-arrow-right-circle-fill"></i>
+                                    {% else %}
+                                    <i class="bi bi-circle"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="step-label">{{ status }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if specific_order %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Order Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Order Information</h6>
+                            <p><strong>Order ID:</strong> {{ specific_order.order_id }}</p>
+                            <p><strong>Order Date:</strong> {{ specific_order.order_date|date:"F j, Y" }}</p>
+                            <p><strong>Status:</strong> <span class="badge bg-info">{{ specific_order.payment_status }}</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Shipping Address</h6>
+                            <p>
+                                {{ specific_order.shipping_address.full_name }}<br>
+                                {{ specific_order.shipping_address.address }}<br>
+                                {{ specific_order.shipping_address.city }}, {{ specific_order.shipping_address.pincode }}<br>
+                                Phone: {{ specific_order.shipping_address.phone }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Order Items</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Quantity</th>
+                                    <th>Price</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in specific_order.products %}
+                                <tr>
+                                    <td>{{ item.name }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>₹{{ item.price }}</td>
+                                    <td>₹{{ item.total }}</td>
+                                </tr>
+                                {% endfor %}
+                                <tr class="table-secondary">
+                                    <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
+                                    <td><strong>₹{{ specific_order.total_amount }}</strong></td>
+                                </tr>
+                                {% if specific_order.discount_amount > 0 %}
+                                <tr class="table-success">
+                                    <td colspan="3" class="text-end"><strong>Discount:</strong></td>
+                                    <td><strong>-₹{{ specific_order.discount_amount }}</strong></td>
+                                </tr>
+                                {% endif %}
+                                <tr class="table-primary">
+                                    <td colspan="3" class="text-end"><strong>Grand Total:</strong></td>
+                                    <td><strong>₹{{ specific_order.grand_total }}</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Order History View -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0"><i class="bi bi-list-check me-2"></i>Your Orders</h2>
         <a href="{% url 'customer_home' %}" class="btn btn-outline-primary">
@@ -15,27 +127,27 @@
         <div class="col-md-6 col-lg-4 mb-4">
             <div class="card h-100 shadow-sm">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span class="badge bg-{% if order.status == 'delivered' %}success{% elif order.status == 'shipped' %}warning{% else %}info{% endif %}">
-                        {{ order.status|title }}
+                    <span class="badge bg-{% if order.payment_status == 'Completed' %}success{% else %}warning{% endif %}">
+                        {{ order.payment_status }}
                     </span>
-                    <small class="text-muted">#{{ order.order_id }}</small>
+                    <small class="text-muted">#{{ order.order_id|slice:":8" }}...</small>
                 </div>
                 <div class="card-body">
                     <h6 class="card-title">Order Placed</h6>
-                    <p class="card-text">{{ order.created_at|date:"F j, Y" }}</p>
+                    <p class="card-text">{{ order.order_date|date:"F j, Y" }}</p>
                     
                     <h6 class="card-title mt-3">Items</h6>
                     <ul class="list-unstyled">
-                        {% for item in order.items.all|slice:":2" %}
-                        <li class="small">{{ item.quantity }} x {{ item.product.name }}</li>
+                        {% for product in order.products|slice:":2" %}
+                        <li class="small">{{ product.quantity }} x {{ product.name }}</li>
                         {% endfor %}
-                        {% if order.items.count > 2 %}
-                        <li class="small text-muted">+{{ order.items.count|add:"-2" }} more items</li>
+                        {% if order.products|length > 2 %}
+                        <li class="small text-muted">+{{ order.products|length|add:"-2" }} more items</li>
                         {% endif %}
                     </ul>
                     
                     <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
-                        <strong class="text-primary">₹{{ order.total_amount }}</strong>
+                        <strong class="text-primary">₹{{ order.grand_total }}</strong>
                         <a href="{% url 'track_order' order_id=order.order_id %}" class="btn btn-sm btn-outline-secondary">
                             Track Order
                         </a>
@@ -55,6 +167,71 @@
         </a>
     </div>
     {% endif %}
+    {% endif %}
 </div>
+
+<style>
+.progress-container {
+    padding: 20px 0;
+}
+
+.progress-steps {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+}
+
+.progress-steps::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background-color: #e9ecef;
+    z-index: 1;
+}
+
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+}
+
+.step-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    font-size: 1.2rem;
+}
+
+.step.completed .step-icon {
+    color: #198754;
+}
+
+.step:not(.completed) .step-icon {
+    color: #6c757d;
+}
+
+.step-label {
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+</style>
 
 {% endblock %}

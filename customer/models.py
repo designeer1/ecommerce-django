@@ -65,3 +65,17 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Order {self.id} - {self.user.username}"
+    
+class CustomerOrder(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    order_id = models.CharField(max_length=100, unique=True)
+    products = models.JSONField()
+    total_amount = models.FloatField()
+    discount_amount = models.FloatField(default=0)
+    grand_total = models.FloatField()
+    shipping_address = models.JSONField()
+    order_date = models.DateTimeField(auto_now_add=True)
+    payment_status = models.CharField(max_length=20, default="Completed")
+    
+    def __str__(self):
+        return f"Order {self.order_id} - {self.user.username}"

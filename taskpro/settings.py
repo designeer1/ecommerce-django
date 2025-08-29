@@ -55,6 +55,7 @@ TEMPLATES = [
                 'customer.context_processors.cart_count',
                 'customer.context_processors.categories_processor',
                 'customer.context_processors.current_year',
+                'customer.context_processors.global_context',
 
             ],
         },
@@ -71,7 +72,7 @@ pymysql.install_as_MySQLdb()
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'taskpro_db',   # 👈 your DB name
+        'NAME': 'taskpro1',   # 👈 your DB name
         'USER': 'kalyan',       # 👈 the MySQL user you created
         'PASSWORD': 'kalyan@123', # 👈 that user’s password
         'HOST': '127.0.0.1',    # or 'localhost'

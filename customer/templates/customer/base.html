@@ -279,12 +279,13 @@
                 {% if user.is_authenticated %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" data-bs-toggle="dropdown">
-                        {% if user.customerprofile.profile_picture %}
-                            <img src="{{ user.customerprofile.profile_picture.url }}" 
-                                 alt="Profile" class="rounded-circle profile-img me-2">
+                        {% if user.is_authenticated and user.customerprofile and user.customerprofile.profile_picture %}
+                        <img src="{{ user.customerprofile.profile_picture.url }}" 
+                             alt="Profile" class="rounded-circle profile-img me-2">
                         {% else %}
-                            <i class="fas fa-user-circle fa-lg me-2"></i>
+                        <i class="fas fa-user-circle fa-lg me-2"></i>
                         {% endif %}
+                        <span>{{ user.username }}</span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li>
@@ -328,7 +329,7 @@
 <!-- Footer -->
 <footer class="bg-dark text-light py-4 mt-5">
     <div class="container text-center">
-        <p class="mb-1">© 2023 TaskPro. All rights reserved.</p>
+        <p class="mb-1">© 2025 TaskPro. All rights reserved.</p>
         <small class="text-muted">Designed and developed with ❤️ using Django & Bootstrap</small>
     </div>
 </footer>

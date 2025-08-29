@@ -10,7 +10,7 @@ import razorpay
 from django.conf import settings
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-from .models import CustomerProfile
+from .models import CustomerProfile, CustomerOrder
 
 DATA_FILE = Path(__file__).resolve().parent.parent / "owner" / "data.json"
 
@@ -24,9 +24,8 @@ def load_data():
 def get_all_products():
     data = load_data()
     all_products = []
-    seen_products = set()  # To avoid duplicates
+    seen_products = set()
 
-    # Collect products from user_data -> subcategories
     for _, udata in data.get("user_data", {}).items():
         subcategories = udata.get("subcategories", {})
         for cat, products in subcategories.items():
@@ -44,8 +43,6 @@ def get_all_products():
                     })
                     seen_products.add(product_name)
 
-    # Collect products from user_data -> products
-    for _, udata in data.get("user_data", {}).items():
         for p in udata.get("products", []):
             product_name = p.get("name")
             if product_name and product_name not in seen_products:
@@ -118,7 +115,7 @@ def login_view(request):
             return redirect("customer_home")
         else:
             messages.error(request, "Invalid username or password")
-    return render(request, "customer/login.html", {"cart_count": len(request.session.get("cart", []))})
+    return render(request, "customer/login.html")
 
 def register_view(request):
     if request.method == "POST":
@@ -135,11 +132,9 @@ def register_view(request):
             messages.error(request, "Username already taken")
             return redirect("customer_register")
             
-        # Create user
         user = User.objects.create_user(username=username, password=password)
         
-        # Create profile with picture
-        profile = CustomerProfile.objects.create(user=user)
+        profile, created = CustomerProfile.objects.get_or_create(user=user)
         if profile_picture:
             profile.profile_picture = profile_picture
             profile.save()
@@ -147,7 +142,7 @@ def register_view(request):
         messages.success(request, "Account created successfully! Please login.")
         return redirect("customer_login")
         
-    return render(request, "customer/register.html", {"cart_count": len(request.session.get("cart", []))})
+    return render(request, "customer/register.html")
 
 def logout_view(request):
     logout(request)
@@ -163,9 +158,6 @@ def home(request):
     if new_product_added:
         del request.session["new_product_added"]
         request.session.modified = True
-    
-    # Debug: Print products to console
-    print("Products sent to home.html:", all_products)
     
     return render(request, "customer/home.html", {
         "products": all_products,
@@ -300,8 +292,7 @@ def cart_view(request):
                 })
     request.session["cart_seen"] = True
     return render(request, "customer/cart.html", {
-        "products": cart_products,
-        "cart_count": len(cart)
+        "products": cart_products
     })
 
 def cart_table_view(request):
@@ -323,8 +314,7 @@ def cart_table_view(request):
                 })
     return render(request, "customer/cart_table.html", {
         "products": cart_products,
-        "grand_total": grand_total,
-        "cart_count": len(cart)
+        "grand_total": grand_total
     })
 
 def increment_cart_item(request, product_name):
@@ -403,7 +393,6 @@ def checkout_address(request):
         return JsonResponse({"success": False, "error": "Invalid request"})
 
     return render(request, "customer/checkout_address.html", {
-        "cart_count": len(cart),
         "previous_addresses": previous_addresses,
         "selected_address": request.session.get("address")
     })
@@ -467,8 +456,7 @@ def checkout_payment(request):
         "razorpay_order_id": razorpay_order["id"],
         "amount": amount_in_paise,
         "coupon_applied": coupon_applied,
-        "coupon_code": coupon_code,
-        "cart_count": len(cart)
+        "coupon_code": coupon_code
     })
 
 def place_order(request):
@@ -482,13 +470,27 @@ def place_order(request):
 def payment_success(request):
     invoice = request.session.get("invoice", {})
     address = request.session.get("address", {})
+    
+    # Save order to database if user is authenticated
+    if request.user.is_authenticated and invoice and address:
+        # Check if order already exists to avoid duplicates
+        if not CustomerOrder.objects.filter(order_id=invoice.get('order_id')).exists():
+            CustomerOrder.objects.create(
+                user=request.user,
+                order_id=invoice.get('order_id'),
+                products=invoice.get('products', []),
+                total_amount=invoice.get('total', 0),
+                discount_amount=invoice.get('discount', 0),
+                grand_total=invoice.get('grand_total', 0),
+                shipping_address=address
+            )
+    
     request.session["cart"] = []
     request.session["notified_products"] = []
     request.session.modified = True
     return render(request, "customer/payment_success.html", {
         "invoice": invoice,
-        "address": address,
-        "cart_count": 0
+        "address": address
     })
 
 def download_invoice_pdf(request):
@@ -560,25 +562,56 @@ def download_invoice_pdf(request):
     c.save()
     return response
 
-def track_order(request, order_id):
-    statuses = [
-        "Order Placed",
-        "Processing",
-        "Shipped",
-        "Out for Delivery",
-        "Delivered"
-    ]
-    current_status_index = 1
+def track_order(request, order_id=None):
+    # If order_id is provided, show tracking for that specific order
+    if order_id:
+        statuses = [
+            "Order Placed",
+            "Processing",
+            "Shipped",
+            "Out for Delivery",
+            "Delivered"
+        ]
+        current_status_index = 1
+        
+        # Try to get the order from database
+        try:
+            order = CustomerOrder.objects.get(order_id=order_id)
+        except CustomerOrder.DoesNotExist:
+            order = None
+        
+        return render(request, "customer/track_order.html", {
+            "order_id": order_id,
+            "statuses": statuses,
+            "current_status_index": current_status_index,
+            "specific_order": order,
+            "show_tracking": True
+        })
+    
+    # If no order_id provided, show order history
+    if not request.user.is_authenticated:
+        messages.error(request, "Please login to view your order history")
+        return redirect("customer_login")
+    
+    orders = CustomerOrder.objects.filter(user=request.user).order_by('-order_date')
+    
     return render(request, "customer/track_order.html", {
-        "order_id": order_id,
-        "statuses": statuses,
-        "current_status_index": current_status_index,
-        "cart_count": len(request.session.get("cart", []))
+        "orders": orders,
+        "show_tracking": False
     })
-
 def order_success(request):
     order_id = "order_R9KM15eIvDUlE2"
     return render(request, "customer/order_success.html", {
-        "order_id": order_id,
-        "cart_count": 0
+        "order_id": order_id
+    })
+
+def order_history(request):
+    if not request.user.is_authenticated:
+        messages.error(request, "Please login to view your order history")
+        return redirect("customer_login")
+    
+    orders = CustomerOrder.objects.filter(user=request.user).order_by('-order_date')
+    
+    return render(request, "customer/order_history.html", {
+        "orders": orders
     })
