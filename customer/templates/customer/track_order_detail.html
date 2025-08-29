@@ -1,0 +1,164 @@
+{% extends "customer/base.html" %}
+{% block content %}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0"><i class="bi bi-truck me-2"></i>Track Order #{{ order_id }}</h2>
+                <a href="{% url 'track_order' %}" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Orders
+                </a>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Order Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="progress-container">
+                        <div class="progress-steps">
+                            {% for status in statuses %}
+                            <div class="step {% if forloop.counter0 <= current_status_index %}completed{% endif %}">
+                                <div class="step-icon">
+                                    {% if forloop.counter0 < current_status_index %}
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    {% elif forloop.counter0 == current_status_index %}
+                                    <i class="bi bi-arrow-right-circle-fill"></i>
+                                    {% else %}
+                                    <i class="bi bi-circle"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="step-label">{{ status }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Order Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Order Information</h6>
+                            <p><strong>Order ID:</strong> {{ order.order_id }}</p>
+                            <p><strong>Order Date:</strong> {{ order.created_at|date:"F j, Y" }}</p>
+                            <p><strong>Status:</strong> <span class="badge bg-info">{{ order.get_status_display }}</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Shipping Address</h6>
+                            <p>{{ order.full_name }}<br>
+                            {{ order.address }}<br>
+                            {{ order.city }}, {{ order.pincode }}<br>
+                            Phone: {{ order.phone }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Order Items</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Quantity</th>
+                                    <th>Price</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order.products %}
+                                <tr>
+                                    <td>{{ item.name }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>₹{{ item.total }}</td>
+                                </tr>
+                                {% endfor %}
+                                <tr class="table-secondary">
+                                    <td colspan="2" class="text-end"><strong>Total:</strong></td>
+                                    <td><strong>₹{{ order.total_amount }}</strong></td>
+                                </tr>
+                                {% if order.discount_amount > 0 %}
+                                <tr class="table-success">
+                                    <td colspan="2" class="text-end"><strong>Discount:</strong></td>
+                                    <td><strong>-₹{{ order.discount_amount }}</strong></td>
+                                </tr>
+                                <tr class="table-secondary">
+                                    <td colspan="2" class="text-end"><strong>Grand Total:</strong></td>
+                                    <td><strong>₹{{ order.total_amount|add:order.discount_amount }}</strong></td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.progress-container {
+    padding: 20px 0;
+}
+
+.progress-steps {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+}
+
+.progress-steps::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background-color: #e9ecef;
+    z-index: 1;
+}
+
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+}
+
+.step-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    font-size: 1.2rem;
+}
+
+.step.completed .step-icon {
+    color: #198754;
+}
+
+.step:not(.completed) .step-icon {
+    color: #6c757d;
+}
+
+.step-label {
+    font-size: 0.875rem;
+    text-align: center;
+}
+</style>
+
+{% endblock %}

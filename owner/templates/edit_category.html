@@ -1,59 +1,133 @@
 {% extends 'base.html' %}
-{% load static %}
 {% block content %}
 
-<div class="container py-5">
-  <h2 class="mb-4 text-center">Edit Subcategory</h2>
-
-  <form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {% if error %}
-      <div class="alert alert-danger">{{ error }}</div>
-    {% endif %}
-
-    <div class="mb-3">
-      <label for="category" class="form-label">Category</label>
-      <select name="category" class="form-select" required>
-        <option value="" disabled>Select a category</option>
-        {% for cat in categories %}
-          <option value="{{ cat }}" {% if cat == current_category %}selected{% endif %}>{{ cat }}</option>
-        {% endfor %}
-      </select>
+<div class="container py-4">
+  <!-- Header Section -->
+  <div class="d-flex justify-content-between align-items-center mb-4 p-4 bg-gradient-primary rounded-4 shadow-sm">
+    <div>
+      <h2 class="fw-bold text-white mb-1"><i class="bi bi-pencil-square me-2"></i>Edit Category</h2>
+      <p class="text-white-50 mb-0">Update your category details</p>
     </div>
+    <a href="{% url 'manage_category' %}" class="btn btn-light">
+      <i class="bi bi-arrow-left me-1"></i> Back to Categories
+    </a>
+  </div>
 
-    <div class="mb-3">
-      <label for="subcategory" class="form-label">Subcategory Name</label>
-      <input type="text" name="subcategory" class="form-control" value="{{ subcategory.subcategory }}" required>
-    </div>
-
-    <div class="mb-3">
-      <label for="price" class="form-label">Price</label>
-      <input type="number" step="0.01" name="price" class="form-control" value="{{ subcategory.price }}" required>
-    </div>
-
-    <div class="mb-3">
-      <label for="description" class="form-label">Description</label>
-      <textarea name="description" class="form-control" rows="4">{{ subcategory.description|default:'' }}</textarea>
-    </div>
-
-    <div class="mb-3">
-      <label for="image" class="form-label">Image</label>
-      <input type="file" name="image" class="form-control" accept="image/jpeg,image/png">
-      {% if subcategory.image %}
-        <div class="mt-2">
-          <img src="{{ subcategory.image|default:'/media/products/default.png' }}" alt="Current Image"
-               style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px;">
+  <!-- Edit Form Card -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-4">
+      <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="row">
+          <!-- Current Image Preview -->
+          <div class="col-md-4 mb-4">
+            <div class="card">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">Current Image</h6>
+              </div>
+              <div class="card-body text-center">
+                {% if category.image %}
+                  <img src="{{ category.image.url }}" 
+                       class="img-fluid rounded shadow-sm mb-3" 
+                       style="max-height: 200px; object-fit: cover;"
+                       onclick="document.getElementById('id_image').click()"
+                       title="Click to change image">
+                {% else %}
+                  <div class="d-flex align-items-center justify-content-center bg-light rounded" 
+                       style="height: 200px; cursor: pointer;"
+                       onclick="document.getElementById('id_image').click()"
+                       title="Click to add image">
+                    <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+                  </div>
+                {% endif %}
+                <p class="text-muted small mb-0">Click image to change</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Form Fields -->
+          <div class="col-md-8">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Category Name</label>
+              <input type="text" name="name" class="form-control" value="{{ form.name.value }}" required>
+              {% if form.name.errors %}
+                <div class="text-danger small">{{ form.name.errors }}</div>
+              {% endif %}
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Description</label>
+              <textarea name="description" class="form-control" rows="4">{{ form.description.value }}</textarea>
+              {% if form.description.errors %}
+                <div class="text-danger small">{{ form.description.errors }}</div>
+              {% endif %}
+            </div>
+            
+            <div class="mb-4">
+              <label class="form-label fw-semibold">Update Image</label>
+              <input type="file" name="image" class="form-control" id="id_image" accept="image/jpeg,image/png">
+              <div class="form-text">Leave empty to keep current image. JPG or PNG, max 5MB.</div>
+              {% if form.image.errors %}
+                <div class="text-danger small">{{ form.image.errors }}</div>
+              {% endif %}
+            </div>
+            
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary px-4">
+                <i class="bi bi-check-circle me-1"></i> Update Category
+              </button>
+              <a href="{% url 'manage_category' %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+          </div>
         </div>
-      {% endif %}
+      </form>
     </div>
-
-    <button type="submit" class="btn btn-primary">Save Changes</button>
-    <a href="{% url 'manage_subcategory' %}" class="btn btn-secondary">Cancel</a>
-  </form>
+  </div>
 </div>
 
 <style>
-.form-label { font-weight: bold; }
+.bg-gradient-primary {
+  background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: #4e73df;
+  box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+.category-img-container img {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.category-img-container img:hover {
+  transform: scale(1.05);
+}
 </style>
+
+<script>
+// Make the image clickable to trigger file input
+document.addEventListener('DOMContentLoaded', function() {
+  const imageInput = document.getElementById('id_image');
+  const imagePreview = document.querySelector('.card-body img');
+  
+  if (imageInput && imagePreview) {
+    imagePreview.addEventListener('click', function() {
+      imageInput.click();
+    });
+    
+    imageInput.addEventListener('change', function(e) {
+      if (e.target.files && e.target.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          imagePreview.src = e.target.result;
+        }
+        reader.readAsDataURL(e.target.files[0]);
+      }
+    });
+  }
+});
+</script>
 
 {% endblock %}

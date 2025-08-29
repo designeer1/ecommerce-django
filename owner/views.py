@@ -250,10 +250,18 @@ def edit_category(request, cat_name):
     email = request.session.get("email")
 
     if request.method == "POST":
+        # Get the current description before processing the form
+        current_description = category.description
+        
         form = CategoryForm(request.POST, request.FILES, instance=category)
         if form.is_valid():
+            # If no new description was provided, keep the existing one
+            if not form.cleaned_data.get('description'):
+                form.instance.description = current_description
+                
             old_name = cat_name
             category = form.save()
+            
             if email and email in data['user_data']:
                 user_data_email = data['user_data'][email]
                 if old_name != category.name:
@@ -264,10 +272,13 @@ def edit_category(request, cat_name):
                         user_data_email["subcategories"][category.name] = user_data_email["subcategories"].pop(old_name)
                     save_data(data)
             return redirect("manage_category")
+        else:
+            # If form is invalid, preserve the existing description
+            form.instance.description = current_description
     else:
         form = CategoryForm(instance=category)
 
-    return render(request, "edit_category.html", {"form": form})
+    return render(request, "edit_category.html", {"form": form, "category": category})
 
 def search_categories(request):
     q = request.GET.get("q", "")

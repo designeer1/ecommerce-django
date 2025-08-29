@@ -15,8 +15,7 @@ urlpatterns = [
     # -------------------- Subcategory Management --------------------
 path("manage_subcategory/", views.manage_subcategory, name="manage_subcategory"),
 path("subcategories/add/", views.add_subcategory, name="add_subcategory"),  # NEW
-path("subcategories/edit/<str:cat_name>/<str:old_subcat_name>/", 
-     views.edit_subcategory, name="edit_subcategory"),
+path("edit_category/<str:cat_name>/", views.edit_category, name="edit_category"),
 path("subcategories/delete/<str:category>/<str:name>/", 
      views.delete_subcategory, name="delete_subcategory"),
 path("subcategories/search/", views.search_subcategories, name="search_subcategories"),

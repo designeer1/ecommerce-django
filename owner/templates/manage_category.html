@@ -109,16 +109,26 @@
             <tr class="border-bottom">
               <td class="ps-4 text-muted">{{ forloop.counter }}</td>
               <td>
-                <div class="category-img-container">
-                  {% if cat.image %}
-                    <img src="{{ cat.image.url }}" class="rounded-3 shadow-sm" style="width:60px; height:60px; object-fit:cover;">
-                  {% else %}
-                    <div class="d-flex align-items-center justify-content-center rounded-3 bg-light text-muted" style="width:60px; height:60px;">
-                      <i class="bi bi-image" style="font-size: 1.5rem;"></i>
-                    </div>
-                  {% endif %}
-                </div>
-              </td>
+  <div class="category-img-container">
+    {% if cat.image %}
+      <img src="{{ cat.image.url }}" class="rounded-3 shadow-sm" 
+           style="width:60px; height:60px; object-fit:cover; cursor: pointer;"
+           onclick="document.getElementById('image-{{ forloop.counter }}').click()">
+    {% else %}
+      <div class="d-flex align-items-center justify-content-center rounded-3 bg-light text-muted" 
+           style="width:60px; height:60px; cursor: pointer;"
+           onclick="document.getElementById('image-{{ forloop.counter }}').click()">
+        <i class="bi bi-image" style="font-size: 1.5rem;"></i>
+      </div>
+    {% endif %}
+    
+    <!-- Hidden file input for quick image update -->
+    <input type="file" id="image-{{ forloop.counter }}" 
+           style="display: none;" 
+           accept="image/jpeg,image/png"
+           onchange="quickUpdateImage(this, '{{ cat.name }}')">
+  </div>
+</td>
               <td class="fw-semibold">{{ cat.name }}</td>
               <td class="text-muted">{{ cat.description|default:"—" }}</td>
               <td class="text-center pe-4">
@@ -316,6 +326,58 @@
 </style>
 
 <script>
+
+
+
+// Quick image update function
+function quickUpdateImage(input, categoryName) {
+  if (input.files && input.files[0]) {
+    const formData = new FormData();
+    formData.append('image', input.files[0]);
+    formData.append('name', categoryName);
+    formData.append('description', '{{ category.description|escapejs }}'); // Preserve description
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    
+    // Show loading indicator
+    const originalSrc = input.previousElementSibling.src;
+    if (input.previousElementSibling.tagName === 'IMG') {
+      input.previousElementSibling.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRjBGMEYwIi8+CjxwYXRoIGQ9Ik0zMCAxNVY0NU00NSA0NUgxNU0xNSAzMEg0NSIgc3Ryb2tlPSIjOEU4RThFIiBzdHJva2Utd2lkdGg9IjIiLz4KPC9zdmc+';
+    }
+    
+    fetch(`/owner/edit_category/${categoryName}/`, {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => {
+      if (response.ok) {
+        // Reload the page to show updated image
+        location.reload();
+      } else {
+        alert('Error updating image');
+        if (input.previousElementSibling.tagName === 'IMG') {
+          input.previousElementSibling.src = originalSrc;
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error updating image');
+      if (input.previousElementSibling.tagName === 'IMG') {
+        input.previousElementSibling.src = originalSrc;
+      }
+    });
+  }
+}
+
+// Make table images clickable for quick updates
+document.addEventListener('DOMContentLoaded', function() {
+  const categoryImages = document.querySelectorAll('.category-img-container img');
+  categoryImages.forEach(img => {
+    img.style.cursor = 'pointer';
+    img.title = 'Click to change image';
+  });
+});
+
 /* 🔍 Live Search */
 document.getElementById("liveSearch").addEventListener("keyup", function() {
     let query = this.value;
