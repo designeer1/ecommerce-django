@@ -241,9 +241,9 @@
         <div class="modal-body py-4">
           <div class="mb-4">
             <label class="form-label fw-semibold">CSV File</label>
-            <input type="file" name="csv_file" class="form-control" accept=".csv" required>
+            <input type="file" name="csv_file" class="form-control" accept=".csv" required id="csvFileInput">
             <div class="form-text">
-              CSV format: name,description (optional). 
+              CSV format: name,description,image_path (optional). 
               <a href="{% url 'export_categories' %}" class="text-decoration-none">Download template</a>
             </div>
           </div>
@@ -255,14 +255,34 @@
             </label>
           </div>
           
+      <!-- CSV Preview -->
+<div class="mb-3" id="csvPreviewContainer" style="display: none;">
+  <label class="form-label fw-semibold">CSV Preview</label>
+  <div class="table-responsive">
+    <table class="table table-sm table-bordered" id="csvPreviewTable">
+      <thead class="table-light">
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Image Path</th>
+        </tr>
+      </thead>
+      <tbody id="csvPreviewBody">
+                  <!-- Preview will be populated by JavaScript -->
+                </tbody>
+              </table>
+            </div>
+            <div class="form-text" id="previewRowCount"></div>
+          </div>
+          
           <div class="alert alert-warning">
             <i class="bi bi-exclamation-triangle me-2"></i>
-            Existing categories with the same name will be updated.
+            Existing categories with the same name will be updated. New categories will be added with continuous IDs.
           </div>
         </div>
         <div class="modal-footer border-0">
           <button type="button" class="btn btn-outline-secondary rounded-3" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-info text-white rounded-3 px-4">
+          <button type="submit" class="btn btn-info text-white rounded-3 px-4" id="importSubmitBtn">
             <i class="bi bi-upload me-1"></i> Import Categories
           </button>
         </div>
@@ -441,6 +461,122 @@ document.getElementById('importForm').addEventListener('submit', function(e) {
   submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Importing...';
   submitBtn.disabled = true;
 });
+
+
+// CSV file preview functionality
+document.getElementById('csvFileInput').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  const previewContainer = document.getElementById('csvPreviewContainer');
+  const previewBody = document.getElementById('csvPreviewBody');
+  const previewRowCount = document.getElementById('previewRowCount');
+  const hasHeaders = document.getElementById('hasHeaders').checked;
+  
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const csvData = e.target.result;
+      const rows = csvData.split('\n').filter(row => row.trim() !== '');
+      
+      // Determine start index based on headers
+      const startIndex = hasHeaders ? 1 : 0;
+      const previewRows = rows.slice(startIndex, startIndex + 5); // Show first 5 rows
+      
+      // Clear previous preview
+      previewBody.innerHTML = '';
+      
+      // Populate preview table
+      previewRows.forEach((row, index) => {
+        const cells = row.split(',').map(cell => cell.trim());
+        const tr = document.createElement('tr');
+        
+        // Add cells (show only first 3 columns: Name, Description, Image Path)
+        for (let i = 0; i < 3; i++) {
+          const td = document.createElement('td');
+          td.textContent = cells[i] || '';
+          if (i === 2 && cells[i]) {
+            td.innerHTML = `<span class="text-truncate d-inline-block" style="max-width: 150px;" title="${cells[i]}">${cells[i]}</span>`;
+          }
+          tr.appendChild(td);
+        }
+        
+        previewBody.appendChild(tr);
+      });
+      
+      // Update row count
+      const totalRows = rows.length - (hasHeaders ? 1 : 0);
+      previewRowCount.textContent = `Showing ${Math.min(5, totalRows)} of ${totalRows} rows`;
+      
+      // Show preview container
+      previewContainer.style.display = 'block';
+    };
+    reader.readAsText(file);
+  } else {
+    previewContainer.style.display = 'none';
+  }
+});
+
+// Toggle preview when headers checkbox changes
+document.getElementById('hasHeaders').addEventListener('change', function() {
+  if (document.getElementById('csvFileInput').files[0]) {
+    document.getElementById('csvFileInput').dispatchEvent(new Event('change'));
+  }
+});
+
+// Enhanced import form submission
+document.getElementById('importForm').addEventListener('submit', function(e) {
+  const submitBtn = document.getElementById('importSubmitBtn');
+  const originalText = submitBtn.innerHTML;
+  
+  // Show loading state
+  submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Importing...';
+  submitBtn.disabled = true;
+  
+  // Add a small delay to show the loading state
+  setTimeout(() => {
+    // The form will continue with submission
+  }, 100);
+});
+
+// Function to handle quick image updates with proper description preservation
+function quickUpdateImage(input, categoryName) {
+  if (input.files && input.files[0]) {
+    // Show loading indicator
+    const originalSrc = input.previousElementSibling.src;
+    if (input.previousElementSibling.tagName === 'IMG') {
+      input.previousElementSibling.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRjBGMEYwIi8+CjxwYXRoIGQ9Ik0zMCAxNVY0NU00NSA0NUgxNU0xNSAzMEg0NSIgc3Ryb2tlPSIjOEU4RThFIiBzdHJva2Utd2lkdGg9IjIiLz4KPC9zdmc+';
+    }
+    
+    // Create form data
+    const formData = new FormData();
+    formData.append('image', input.files[0]);
+    formData.append('name', categoryName);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    
+    // Send the request
+    fetch(`/owner/edit_category/${categoryName}/`, {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => {
+      if (response.ok) {
+        // Reload the page to show updated image
+        location.reload();
+      } else {
+        alert('Error updating image');
+        if (input.previousElementSibling.tagName === 'IMG') {
+          input.previousElementSibling.src = originalSrc;
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error updating image');
+      if (input.previousElementSibling.tagName === 'IMG') {
+        input.previousElementSibling.src = originalSrc;
+      }
+    });
+  }
+}
 </script>
 
 {% endblock %}

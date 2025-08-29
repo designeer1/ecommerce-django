@@ -834,6 +834,7 @@ from django.contrib import messages
 from io import TextIOWrapper, StringIO
 import os
 from django.core.files import File
+from django.db import models
 
 def import_categories(request):
     if request.method == 'POST' and request.FILES.get('csv_file'):
@@ -854,16 +855,15 @@ def import_categories(request):
             error_count = 0
             errors = []
             
+            # Get the maximum existing ID to continue from
+            max_id = Category.objects.all().aggregate(models.Max('id'))['id__max'] or 0
+            
             for i, row in enumerate(rows):
-                if not row:  # Skip empty rows
+                if not row or all(cell.strip() == '' for cell in row):  # Skip empty rows
                     continue
                     
-                if len(row) < 1:  # At least name is required
-                    error_count += 1
-                    errors.append(f"Row {i+1}: Missing required name field")
-                    continue
-                
-                name = row[0].strip()
+                # Determine column positions
+                name = row[0].strip() if len(row) > 0 else ''
                 description = row[1].strip() if len(row) > 1 else ''
                 image_path = row[2].strip() if len(row) > 2 else None
                 
@@ -874,26 +874,51 @@ def import_categories(request):
                 
                 # Check if category already exists
                 try:
-                    category, created = Category.objects.get_or_create(
-                        name=name,
-                        defaults={'description': description}
-                    )
+                    # Check if category with this name already exists
+                    existing_category = Category.objects.filter(name=name).first()
                     
-                    # Handle image if provided
-                    if image_path and os.path.exists(image_path):
-                        with open(image_path, 'rb') as f:
-                            category.image.save(
-                                os.path.basename(image_path), 
-                                File(f), 
-                                save=True
-                            )
-                    
-                    if not created:
+                    if existing_category:
                         # Update existing category
-                        category.description = description
+                        existing_category.description = description
+                        
+                        # Handle image if provided and path exists
+                        if image_path and os.path.exists(image_path):
+                            try:
+                                with open(image_path, 'rb') as f:
+                                    existing_category.image.save(
+                                        os.path.basename(image_path), 
+                                        File(f), 
+                                        save=True
+                                    )
+                            except Exception as e:
+                                errors.append(f"Row {i+1}: Error with image file - {str(e)}")
+                        
+                        existing_category.save()
+                        success_count += 1
+                    else:
+                        # Create new category with continued ID
+                        max_id += 1
+                        category = Category(
+                            id=max_id,
+                            name=name,
+                            description=description
+                        )
+                        
+                        # Handle image if provided and path exists
+                        if image_path and os.path.exists(image_path):
+                            try:
+                                with open(image_path, 'rb') as f:
+                                    category.image.save(
+                                        os.path.basename(image_path), 
+                                        File(f), 
+                                        save=True
+                                    )
+                            except Exception as e:
+                                errors.append(f"Row {i+1}: Error with image file - {str(e)}")
+                        
                         category.save()
+                        success_count += 1
                     
-                    success_count += 1
                 except Exception as e:
                     error_count += 1
                     errors.append(f"Row {i+1}: Error saving category - {str(e)}")
@@ -925,3 +950,14 @@ def import_categories(request):
             request.session['import_status'] = status
     
     return redirect('manage_category')
+    
+def get_category_details(request, cat_name):
+    try:
+        category = Category.objects.get(name=cat_name)
+        return JsonResponse({
+            'name': category.name,
+            'description': category.description or '',
+            'image_url': category.image.url if category.image else ''
+        })
+    except Category.DoesNotExist:
+        return JsonResponse({'error': 'Category not found'}, status=404)

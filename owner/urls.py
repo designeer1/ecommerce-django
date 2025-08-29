@@ -11,16 +11,16 @@ urlpatterns = [
     path("delete_category/<str:cat_name>/", views.delete_category, name="delete_category"),
     path("search-categories/", views.search_categories, name="search_categories"),
     path("categories/count/", views.get_category_count, name="category_count"),
+    path("get-category-details/<str:cat_name>/", views.get_category_details, name="get_category_details"),
 
     # -------------------- Subcategory Management --------------------
-path("manage_subcategory/", views.manage_subcategory, name="manage_subcategory"),
-path("subcategories/add/", views.add_subcategory, name="add_subcategory"),  # NEW
-path("edit_category/<str:cat_name>/", views.edit_category, name="edit_category"),
-path("subcategories/delete/<str:category>/<str:name>/", 
-     views.delete_subcategory, name="delete_subcategory"),
-path("subcategories/search/", views.search_subcategories, name="search_subcategories"),
-path("subcategories/count/", views.get_subcategory_count, name="get_subcategory_count"),
-path("subcategories/update_rating/", views.update_subcategory_rating, name="update_subcategory_rating"),
+    path("manage_subcategory/", views.manage_subcategory, name="manage_subcategory"),
+    path("subcategories/add/", views.add_subcategory, name="add_subcategory"),
+    path("subcategories/edit/<str:cat_name>/<str:old_subcat_name>/", views.edit_subcategory, name="edit_subcategory"),
+    path("subcategories/delete/<str:category>/<str:name>/", views.delete_subcategory, name="delete_subcategory"),
+    path("subcategories/search/", views.search_subcategories, name="search_subcategories"),
+    path("subcategories/count/", views.get_subcategory_count, name="get_subcategory_count"),
+    path("subcategories/update_rating/", views.update_subcategory_rating, name="update_subcategory_rating"),
 
     # -------------------- Product Management --------------------
     path("manage_products/", views.manage_products, name="manage_products"),
@@ -35,7 +35,7 @@ path("subcategories/update_rating/", views.update_subcategory_rating, name="upda
     path("register/", views.register_view, name="register"),
     path("logout/", views.logout, name="logout"),
 
-
-     path('export-categories/', views.export_categories, name='export_categories'),
+    # -------------------- Import/Export --------------------
+    path('export-categories/', views.export_categories, name='export_categories'),
     path('import-categories/', views.import_categories, name='import_categories'),
 ]
