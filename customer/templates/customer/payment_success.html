@@ -133,9 +133,18 @@
           <button onclick="window.print()" class="btn btn-danger btn-lg px-4 py-3">
             <i class="bi bi-printer-fill me-2"></i> Print Invoice
           </button>
+          
+          <!-- FIXED: Only show track order link if order_id exists -->
+          {% if invoice.order_id %}
           <a href="{% url 'track_order' order_id=invoice.order_id %}" class="btn btn-outline-primary btn-lg px-4 py-3">
-    <i class="bi bi-truck me-2"></i> Track Your Order
-</a>
+            <i class="bi bi-truck me-2"></i> Track Your Order
+          </a>
+          {% else %}
+          <button class="btn btn-outline-secondary btn-lg px-4 py-3" disabled>
+            <i class="bi bi-truck me-2"></i> Track Order (Unavailable)
+          </button>
+          {% endif %}
+          
           <a href="{% url 'customer_home' %}" class="btn btn-success btn-lg px-4 py-3">
             <i class="bi bi-house-fill me-2"></i> Continue Shopping
           </a>
@@ -259,7 +268,7 @@
     
     /* Add URL after the page for reference */
     .container::after {
-      content: "Printed from: Your Website Name | {{ invoice.date|date:'F j, Y' }}";
+      content: "Printed from: Your Website Name | {% now 'F j, Y' %}";
       display: block;
       margin-top: 30px;
       font-size: 10pt;

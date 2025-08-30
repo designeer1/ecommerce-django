@@ -121,37 +121,72 @@ def login_view(request):
     return render(request, "customer/login.html")
 
 # views.py - Update the register_view function
+# views.py - Update the register_view function
 def register_view(request):
     if request.method == "POST":
+        # Get form data
         username = request.POST.get("username")
         password = request.POST.get("password")
         confirm_password = request.POST.get("confirm_password")
+        email = request.POST.get("email")
+        first_name = request.POST.get("first_name")
+        last_name = request.POST.get("last_name")
+        phone_number = request.POST.get("phone_number")
+        date_of_birth = request.POST.get("date_of_birth")
         profile_picture = request.FILES.get('profile_picture')
         
+        # Validate passwords match
         if password != confirm_password:
             messages.error(request, "Passwords do not match")
-            return redirect("customer_register")
+            return render(request, "customer/register.html")
             
+        # Check if username already exists
         if User.objects.filter(username=username).exists():
             messages.error(request, "Username already taken")
-            return redirect("customer_register")
+            return render(request, "customer/register.html")
             
-        # Create user
-        user = User.objects.create_user(username=username, password=password)
-        
-        # Create or update profile with picture
-        profile, created = CustomerProfile.objects.get_or_create(user=user)
-        if profile_picture:
-            profile.profile_picture = profile_picture
-            profile.save()
-        
-        # Log the user in after registration
-        user = authenticate(request, username=username, password=password)
-        if user:
-            login(request, user)
-            messages.success(request, "Account created successfully!")
-            return redirect("customer_home")
-        
+        # Check if email already exists
+        if User.objects.filter(email=email).exists():
+            messages.error(request, "Email already registered")
+            return render(request, "customer/register.html")
+            
+        try:
+            # Create user with all fields
+            user = User.objects.create_user(
+                username=username, 
+                password=password,
+                email=email,
+                first_name=first_name,
+                last_name=last_name
+            )
+            
+            # Create customer profile
+            profile = CustomerProfile.objects.create(
+                user=user,
+                phone_number=phone_number,
+                date_of_birth=date_of_birth if date_of_birth else None
+            )
+            
+            # Handle profile picture if provided
+            if profile_picture:
+                profile.profile_picture = profile_picture
+                profile.save()
+            
+            # Log the user in after registration
+            user = authenticate(request, username=username, password=password)
+            if user:
+                login(request, user)
+                messages.success(request, "Account created successfully!")
+                return redirect("customer_home")
+            else:
+                messages.error(request, "Authentication failed after registration")
+                return redirect("customer_login")
+                
+        except Exception as e:
+            messages.error(request, f"Error creating account: {str(e)}")
+            return render(request, "customer/register.html")
+    
+    # If GET request or form invalid, show registration form
     return render(request, "customer/register.html")
 
 def logout_view(request):
@@ -520,17 +555,25 @@ def place_order(request):
         return redirect("customer_home")
     return redirect("checkout_payment")
 
+# views.py - Update the payment_success function
 def payment_success(request):
     invoice = request.session.get("invoice", {})
     address = request.session.get("address", {})
     
+    # Check if we have valid order data
+    order_id = invoice.get('order_id')
+    
+    if not order_id:
+        messages.error(request, "No order information found. Please contact support.")
+        return redirect("customer_home")
+    
     # Save order to database if user is authenticated
     if request.user.is_authenticated and invoice and address:
         # Check if order already exists to avoid duplicates
-        if not CustomerOrder.objects.filter(order_id=invoice.get('order_id')).exists():
+        if not CustomerOrder.objects.filter(order_id=order_id).exists():
             CustomerOrder.objects.create(
                 user=request.user,
-                order_id=invoice.get('order_id'),
+                order_id=order_id,
                 products=invoice.get('products', []),
                 total_amount=invoice.get('total', 0),
                 discount_amount=invoice.get('discount', 0),
@@ -538,12 +581,15 @@ def payment_success(request):
                 shipping_address=address
             )
     
+    # Clear cart after successful payment
     request.session["cart"] = []
     request.session["notified_products"] = []
     request.session.modified = True
+    
     return render(request, "customer/payment_success.html", {
         "invoice": invoice,
-        "address": address
+        "address": address,
+        "order_id": order_id  # Pass order_id to template
     })
 
 def download_invoice_pdf(request):

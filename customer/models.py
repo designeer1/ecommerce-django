@@ -1,7 +1,10 @@
+# customer/models.py
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 import uuid, os
+from django.core.exceptions import ValidationError
+from django.contrib.auth.hashers import make_password, check_password
 
 
 def user_profile_pic_path(instance, filename):
@@ -16,8 +19,32 @@ class CustomerProfile(models.Model):
     phone_number = models.CharField(max_length=15, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
     
+    # Additional fields for name and password storage
+    first_name = models.CharField(max_length=30, blank=True)
+    last_name = models.CharField(max_length=30, blank=True)
+    password_hash = models.CharField(max_length=128, blank=True)  # Store hashed password
+    
     def __str__(self):
         return f"{self.user.username}'s Profile"
+    
+    def set_password(self, raw_password):
+        """Hash and store the password"""
+        self.password_hash = make_password(raw_password)
+        self.save()
+    
+    def check_password(self, raw_password):
+        """Verify the password against the stored hash"""
+        return check_password(raw_password, self.password_hash)
+    
+    def save(self, *args, **kwargs):
+        # Sync with User model if needed
+        if self.user:
+            if self.first_name and self.user.first_name != self.first_name:
+                self.user.first_name = self.first_name
+            if self.last_name and self.user.last_name != self.last_name:
+                self.user.last_name = self.last_name
+            self.user.save()
+        super().save(*args, **kwargs)
 
 
 class Product(models.Model):

@@ -182,35 +182,48 @@
             }
         }
         .hackerrank-input[type="file"] {
-    padding: 10px;
-}
+            padding: 10px;
+        }
 
-.hackerrank-input[type="file"]::file-selector-button {
-    background: #2a2a2a;
-    border: 1px solid #3e3e3e;
-    color: #f2f2f2;
-    padding: 8px 16px;
-    border-radius: 4px;
-    margin-right: 10px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
+        .hackerrank-input[type="file"]::file-selector-button {
+            background: #2a2a2a;
+            border: 1px solid #3e3e3e;
+            color: #f2f2f2;
+            padding: 8px 16px;
+            border-radius: 4px;
+            margin-right: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
 
-.hackerrank-input[type="file"]::file-selector-button:hover {
-    background: #3e3e3e;
-}
+        .hackerrank-input[type="file"]::file-selector-button:hover {
+            background: #3e3e3e;
+        }
 
-/* Image preview styling */
-#imagePreview img {
-    border: 2px solid #2a8ab8;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
+        /* Image preview styling */
+        #imagePreview img {
+            border: 2px solid #2a8ab8;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Form section styling */
+        .form-section {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #3e3e3e;
+        }
+        
+        .form-section-title {
+            color: #2a8ab8;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-md-7 col-lg-6">
+            <div class="col-md-8 col-lg-8">
                 <div class="register-container position-relative">
                     <div class="visual-element visual-1"></div>
                     <div class="visual-element visual-2"></div>
@@ -233,62 +246,198 @@
                         {% endfor %}
                         {% endif %}
                         
-                        <form method="post" action="" id="registerForm">
+                        {% if form.errors %}
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Please correct the errors below.
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        {% endif %}
+                        
+                        <form method="post" action="" id="registerForm" enctype="multipart/form-data">
                             {% csrf_token %}
-                            <div class="mb-4">
-                                <label for="username" class="form-label">Username</label>
-                                <div class="input-group">
-                                    <span class="input-group-text hackerrank-input" style="border-right: none;">
-                                        <i class="fas fa-user text-muted"></i>
-                                    </span>
-                                    <input type="text" class="form-control hackerrank-input" id="username" name="username" required 
-                                           placeholder="Choose a username" style="border-left: none;">
+                            
+                            <!-- Account Information Section -->
+                            <div class="form-section">
+                                <h5 class="form-section-title"><i class="fas fa-user-circle me-2"></i>Account Information</h5>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="first_name" class="form-label">First Name *</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text hackerrank-input" style="border-right: none;">
+                                                <i class="fas fa-signature text-muted"></i>
+                                            </span>
+                                            <input type="text" class="form-control hackerrank-input" id="first_name" name="first_name" required 
+                                                   placeholder="Your first name" value="{{ form.first_name.value|default:'' }}" style="border-left: none;">
+                                        </div>
+                                        {% if form.first_name.errors %}
+                                        <div class="text-danger mt-1">
+                                            {% for error in form.first_name.errors %}
+                                            <small><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="last_name" class="form-label">Last Name *</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text hackerrank-input" style="border-right: none;">
+                                                <i class="fas fa-signature text-muted"></i>
+                                            </span>
+                                            <input type="text" class="form-control hackerrank-input" id="last_name" name="last_name" required 
+                                                   placeholder="Your last name" value="{{ form.last_name.value|default:'' }}" style="border-left: none;">
+                                        </div>
+                                        {% if form.last_name.errors %}
+                                        <div class="text-danger mt-1">
+                                            {% for error in form.last_name.errors %}
+                                            <small><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                    </div>
                                 </div>
-                                <small class="text-muted">Minimum 3 characters, letters and numbers only</small>
+                                
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email Address *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text hackerrank-input" style="border-right: none;">
+                                            <i class="fas fa-envelope text-muted"></i>
+                                        </span>
+                                        <input type="email" class="form-control hackerrank-input" id="email" name="email" required 
+                                               placeholder="your.email@example.com" value="{{ form.email.value|default:'' }}" style="border-left: none;">
+                                    </div>
+                                    {% if form.email.errors %}
+                                    <div class="text-danger mt-1">
+                                        {% for error in form.email.errors %}
+                                        <small><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">Username *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text hackerrank-input" style="border-right: none;">
+                                            <i class="fas fa-user text-muted"></i>
+                                        </span>
+                                        <input type="text" class="form-control hackerrank-input" id="username" name="username" required 
+                                               placeholder="Choose a username" value="{{ form.username.value|default:'' }}" style="border-left: none;">
+                                    </div>
+                                    <small class="text-muted">Minimum 3 characters, letters and numbers only</small>
+                                    {% if form.username.errors %}
+                                    <div class="text-danger mt-1">
+                                        {% for error in form.username.errors %}
+                                        <small><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="password" class="form-label">Password *</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text hackerrank-input" style="border-right: none;">
+                                                <i class="fas fa-lock text-muted"></i>
+                                            </span>
+                                            <input type="password" class="form-control hackerrank-input" id="password" name="password" required 
+                                                   placeholder="Create a strong password" style="border-left: none;">
+                                            <button type="button" class="btn hackerrank-input toggle-password" style="border-left: none;">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </div>
+                                        <div class="password-strength" id="passwordStrength"></div>
+                                        <div class="strength-text" id="strengthText"></div>
+                                        {% if form.password.errors %}
+                                        <div class="text-danger mt-1">
+                                            {% for error in form.password.errors %}
+                                            <small><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="confirm_password" class="form-label">Confirm Password *</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text hackerrank-input" style="border-right: none;">
+                                                <i class="fas fa-lock text-muted"></i>
+                                            </span>
+                                            <input type="password" class="form-control hackerrank-input" id="confirm_password" name="confirm_password" required 
+                                                   placeholder="Confirm your password" style="border-left: none;">
+                                            <button type="button" class="btn hackerrank-input toggle-password" style="border-left: none;">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </div>
+                                        <div id="passwordMatch" class="mt-2"></div>
+                                    </div>
+                                </div>
                             </div>
                             
-                            <div class="mb-4">
-                                <label for="password" class="form-label">Password</label>
-                                <div class="input-group">
-                                    <span class="input-group-text hackerrank-input" style="border-right: none;">
-                                        <i class="fas fa-lock text-muted"></i>
-                                    </span>
-                                    <input type="password" class="form-control hackerrank-input" id="password" name="password" required 
-                                           placeholder="Create a strong password" style="border-left: none;">
-                                    <button type="button" class="btn hackerrank-input toggle-password" style="border-left: none;">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
+                            <!-- Profile Information Section -->
+                            <div class="form-section">
+                                <h5 class="form-section-title"><i class="fas fa-id-card me-2"></i>Profile Information</h5>
+                                
+                                <div class="mb-3">
+                                    <label for="profile_picture" class="form-label">Profile Picture (Optional)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text hackerrank-input" style="border-right: none;">
+                                            <i class="fas fa-camera text-muted"></i>
+                                        </span>
+                                        <input type="file" class="form-control hackerrank-input" id="profile_picture" 
+                                               name="profile_picture" accept="image/*" style="border-left: none;">
+                                    </div>
+                                    <small class="text-muted">Upload a profile picture (JPG, PNG, etc.)</small>
+                                    <div id="imagePreview" class="mt-2 text-center"></div>
+                                    {% if form.profile_picture.errors %}
+                                    <div class="text-danger mt-1">
+                                        {% for error in form.profile_picture.errors %}
+                                        <small><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
                                 </div>
-                                <div class="password-strength" id="passwordStrength"></div>
-                                <div class="strength-text" id="strengthText"></div>
+                                
+                                <div class="mb-3">
+                                    <label for="phone_number" class="form-label">Phone Number</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text hackerrank-input" style="border-right: none;">
+                                            <i class="fas fa-phone text-muted"></i>
+                                        </span>
+                                        <input type="tel" class="form-control hackerrank-input" id="phone_number" name="phone_number" 
+                                               placeholder="+1 234 567 8900" value="{{ form.phone_number.value|default:'' }}" style="border-left: none;">
+                                    </div>
+                                    {% if form.phone_number.errors %}
+                                    <div class="text-danger mt-1">
+                                        {% for error in form.phone_number.errors %}
+                                        <small><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="date_of_birth" class="form-label">Date of Birth</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text hackerrank-input" style="border-right: none;">
+                                            <i class="fas fa-calendar-alt text-muted"></i>
+                                        </span>
+                                        <input type="date" class="form-control hackerrank-input" id="date_of_birth" name="date_of_birth" 
+                                               value="{{ form.date_of_birth.value|default:'' }}" style="border-left: none;">
+                                    </div>
+                                    {% if form.date_of_birth.errors %}
+                                    <div class="text-danger mt-1">
+                                        {% for error in form.date_of_birth.errors %}
+                                        <small><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
                             </div>
                             
-                            <div class="mb-4">
-                                <label for="confirm_password" class="form-label">Confirm Password</label>
-                                <div class="input-group">
-                                    <span class="input-group-text hackerrank-input" style="border-right: none;">
-                                        <i class="fas fa-lock text-muted"></i>
-                                    </span>
-                                    <input type="password" class="form-control hackerrank-input" id="confirm_password" name="confirm_password" required 
-                                           placeholder="Confirm your password" style="border-left: none;">
-                                    <button type="button" class="btn hackerrank-input toggle-password" style="border-left: none;">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                </div>
-                                <div id="passwordMatch" class="mt-2"></div>
-                            </div>
-                             <div class="mb-4">
-                                <label for="profile_picture" class="form-label">Profile Picture (Optional)</label>
-                                <div class="input-group">
-                                    <span class="input-group-text hackerrank-input" style="border-right: none;">
-                                        <i class="fas fa-camera text-muted"></i>
-                                    </span>
-                                    <input type="file" class="form-control hackerrank-input" id="profile_picture" 
-                                           name="profile_picture" accept="image/*" style="border-left: none;">
-                                </div>
-                                <small class="text-muted">Upload a profile picture (JPG, PNG, etc.)</small>
-                                <div id="imagePreview" class="mt-2 text-center"></div>
-                            </div>
                             <button type="submit" class="btn btn-primary w-100 mb-3">
                                 <i class="fas fa-user-plus me-2"></i> Create Account
                             </button>
@@ -419,9 +568,8 @@
             formElements.forEach((element, index) => {
                 element.style.animationDelay = `${index * 0.1}s`;
             });
-        });
 
-              // NEW: Image preview functionality
+            // Image preview functionality
             const profilePictureInput = document.getElementById('profile_picture');
             const imagePreview = document.getElementById('imagePreview');
             
@@ -445,7 +593,7 @@
                     imagePreview.innerHTML = '';
                 }
             });
-        
+        });
     </script>
 </body>
 </html>
