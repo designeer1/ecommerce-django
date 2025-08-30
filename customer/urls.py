@@ -39,4 +39,6 @@ urlpatterns = [
     # Add this URL pattern
 path('orders/history/', views.order_history, name='order_history'),
 
+path('profile/settings/', views.profile_settings, name='profile_settings'),
+
 ]

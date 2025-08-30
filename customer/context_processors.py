@@ -127,3 +127,18 @@ def global_context(request):
         'all_products': all_products,
         'cart_count': cart_count,
     }
+
+# context_processors.py
+from .models import CustomerProfile
+
+def profile_picture(request):
+    context = {}
+    if request.user.is_authenticated:
+        try:
+            profile = CustomerProfile.objects.get(user=request.user)
+            context['user_profile'] = profile
+        except CustomerProfile.DoesNotExist:
+            # Create profile if it doesn't exist
+            profile = CustomerProfile.objects.create(user=request.user)
+            context['user_profile'] = profile
+    return context

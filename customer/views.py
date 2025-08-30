@@ -105,18 +105,22 @@ def get_categories_with_products():
     return result
 
 # ---------- Auth ----------
+# views.py
 def login_view(request):
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
         user = authenticate(request, username=username, password=password)
         if user:
+            # Ensure user has a CustomerProfile
+            profile, created = CustomerProfile.objects.get_or_create(user=user)
             login(request, user)
             return redirect("customer_home")
         else:
             messages.error(request, "Invalid username or password")
     return render(request, "customer/login.html")
 
+# views.py - Update the register_view function
 def register_view(request):
     if request.method == "POST":
         username = request.POST.get("username")
@@ -132,21 +136,50 @@ def register_view(request):
             messages.error(request, "Username already taken")
             return redirect("customer_register")
             
+        # Create user
         user = User.objects.create_user(username=username, password=password)
         
+        # Create or update profile with picture
         profile, created = CustomerProfile.objects.get_or_create(user=user)
         if profile_picture:
             profile.profile_picture = profile_picture
             profile.save()
         
-        messages.success(request, "Account created successfully! Please login.")
-        return redirect("customer_login")
+        # Log the user in after registration
+        user = authenticate(request, username=username, password=password)
+        if user:
+            login(request, user)
+            messages.success(request, "Account created successfully!")
+            return redirect("customer_home")
         
     return render(request, "customer/register.html")
 
 def logout_view(request):
     logout(request)
     return redirect("customer_login")
+
+
+# views.py - Add these imports at the top
+from django.contrib.auth.decorators import login_required
+from .forms import ProfileUpdateForm
+
+# Add this view function
+@login_required
+def profile_settings(request):
+    profile = CustomerProfile.objects.get(user=request.user)
+    
+    if request.method == 'POST':
+        form = ProfileUpdateForm(request.POST, request.FILES, instance=profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Your profile has been updated!')
+            return redirect('profile_settings')
+    else:
+        form = ProfileUpdateForm(instance=profile)
+    
+    return render(request, 'customer/profile_settings.html', {
+        'form': form
+    })
 
 # ---------- Shop ----------
 def home(request):

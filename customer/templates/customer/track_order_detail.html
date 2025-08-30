@@ -1,591 +1,164 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Status Tracking</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #4e73df;
-            --success: #1cc88a;
-            --warning: #f6c23e;
-            --danger: #e74a3b;
-            --info: #36b9cc;
-            --secondary: #858796;
-            --light: #f8f9fc;
-            --dark: #5a5c69;
-        }
-        
-        body {
-            background-color: #f8f9fc;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #4a4a4a;
-        }
-        
-        .order-container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        .order-header {
-            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
-            color: white;
-            border-radius: 12px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }
-        
-        .order-card {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
-            margin-bottom: 25px;
-            overflow: hidden;
-        }
-        
-        .card-header {
-            background-color: #f8f9fc;
-            border-bottom: 1px solid #eaecf4;
-            padding: 20px;
-            font-weight: 600;
-            color: #4a4a4a;
-        }
-        
-        .card-body {
-            padding: 25px;
-        }
-        
-        .status-tracker {
-            padding: 30px 20px;
-        }
-        
-        .status-steps {
-            display: flex;
-            justify-content: space-between;
-            position: relative;
-            margin-bottom: 40px;
-        }
-        
-        .status-steps::before {
-            content: '';
-            position: absolute;
-            top: 30px;
-            left: 0;
-            right: 0;
-            height: 6px;
-            background-color: #e9ecef;
-            z-index: 1;
-            border-radius: 3px;
-        }
-        
-        .status-step {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-            z-index: 2;
-            flex: 1;
-        }
-        
-        .step-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background-color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 15px;
-            font-size: 1.5rem;
-            border: 4px solid #e9ecef;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-        }
-        
-        .step-label {
-            font-size: 0.9rem;
-            text-align: center;
-            font-weight: 600;
-            color: #858796;
-            margin-top: 10px;
-        }
-        
-        .step-date {
-            font-size: 0.8rem;
-            color: #b7b9cc;
-            margin-top: 5px;
-        }
-        
-        /* Status-specific styling */
-        .status-step.pending .step-icon {
-            color: var(--secondary);
-            border-color: var(--secondary);
-            background-color: rgba(133, 135, 150, 0.1);
-        }
-        
-        .status-step.processing .step-icon {
-            color: var(--info);
-            border-color: var(--info);
-            background-color: rgba(54, 185, 204, 0.1);
-        }
-        
-        .status-step.shipped .step-icon {
-            color: var(--primary);
-            border-color: var(--primary);
-            background-color: rgba(78, 115, 223, 0.1);
-        }
-        
-        .status-step.delivered .step-icon {
-            color: var(--success);
-            border-color: var(--success);
-            background-color: rgba(28, 200, 138, 0.1);
-        }
-        
-        .status-step.cancelled .step-icon {
-            color: var(--danger);
-            border-color: var(--danger);
-            background-color: rgba(231, 74, 59, 0.1);
-        }
-        
-        /* Active status */
-        .status-step.active .step-icon {
-            transform: scale(1.1);
-            box-shadow: 0 0 0 8px rgba(78, 115, 223, 0.2);
-        }
-        
-        /* Progress bar fill */
-        .progress-fill {
-            position: absolute;
-            top: 30px;
-            left: 0;
-            height: 6px;
-            background-color: var(--primary);
-            z-index: 1;
-            border-radius: 3px;
-            width: 50%; /* This would be dynamic based on status */
-            transition: width 0.5s ease;
-        }
-        
-        /* Order items */
-        .order-item {
-            display: flex;
-            align-items: center;
-            padding: 15px 0;
-            border-bottom: 1px solid #eaecf4;
-        }
-        
-        .order-item:last-child {
-            border-bottom: none;
-        }
-        
-        .item-img {
-            width: 80px;
-            height: 80px;
-            border-radius: 8px;
-            background-color: #f8f9fc;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 20px;
-            color: #b7b9cc;
-            font-size: 1.5rem;
-        }
-        
-        .item-details {
-            flex-grow: 1;
-        }
-        
-        .item-name {
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-        
-        .item-meta {
-            color: #858796;
-            font-size: 0.9rem;
-        }
-        
-        .item-price {
-            font-weight: 600;
-            color: #4e73df;
-            font-size: 1.1rem;
-        }
-        
-        /* Summary */
-        .summary-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-        }
-        
-        .summary-total {
-            font-weight: 700;
-            font-size: 1.2rem;
-            border-top: 2px solid #eaecf4;
-            padding-top: 15px;
-            margin-top: 10px;
-        }
-        
-        /* Shipping info */
-        .shipping-info {
-            padding: 15px 0;
-        }
-        
-        .info-item {
-            display: flex;
-            margin-bottom: 15px;
-        }
-        
-        .info-icon {
-            width: 40px;
-            color: #4e73df;
-            font-size: 1.2rem;
-        }
-        
-        /* Action buttons */
-        .action-btn {
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-        
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .status-steps {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 30px;
-            }
-            
-            .status-steps::before {
-                top: 0;
-                bottom: 0;
-                left: 30px;
-                width: 6px;
-                height: auto;
-            }
-            
-            .status-step {
-                flex-direction: row;
-                gap: 20px;
-                flex: none;
-                width: 100%;
-            }
-            
-            .step-label {
-                text-align: left;
-                margin-top: 0;
-            }
-            
-            .progress-fill {
-                top: 0;
-                left: 30px;
-                width: 6px;
-                height: 50%; /* This would be dynamic based on status */
-            }
-        }
-        
-        /* Animation for refresh button */
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .refreshing {
-            animation: spin 1s linear infinite;
-        }
-    </style>
-</head>
-<body>
-    <div class="container py-4 order-container">
-        <!-- Header Section -->
-        <div class="order-header">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="h2 mb-1">Order #ORD-2023-7892</h1>
-                    <p class="mb-0">Placed on November 15, 2023 at 2:30 PM</p>
-                </div>
-                <button id="refreshBtn" class="btn btn-light d-flex align-items-center">
-                    <i class="bi bi-arrow-clockwise me-2"></i> Refresh Status
-                </button>
-            </div>
-        </div>
+{% extends "customer/base.html" %}
+{% block content %}
 
-        <div class="row">
-            <!-- Left Column -->
-            <div class="col-lg-8">
-                <!-- Order Status Card -->
-                <div class="order-card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Order Status</h5>
-                    </div>
-                    <div class="card-body status-tracker">
-                        <div class="status-steps">
-                            <div class="progress-fill" style="width: 50%;"></div>
-                            
-                            <div class="status-step pending active">
-                                <div class="step-icon">
-                                    <i class="bi bi-cart"></i>
-                                </div>
-                                <div class="step-label">Pending</div>
-                                <div class="step-date">Nov 15, 2:30 PM</div>
-                            </div>
-                            
-                            <div class="status-step processing active">
-                                <div class="step-icon">
-                                    <i class="bi bi-gear"></i>
-                                </div>
-                                <div class="step-label">Processing</div>
-                                <div class="step-date">Nov 15, 3:45 PM</div>
-                            </div>
-                            
-                            <div class="status-step shipped active">
-                                <div class="step-icon">
-                                    <i class="bi bi-truck"></i>
-                                </div>
-                                <div class="step-label">Shipped</div>
-                                <div class="step-date">Nov 16, 10:15 AM</div>
-                            </div>
-                            
-                            <div class="status-step delivered">
-                                <div class="step-icon">
-                                    <i class="bi bi-check-circle"></i>
-                                </div>
-                                <div class="step-label">Delivered</div>
-                                <div class="step-date">Expected Nov 18</div>
-                            </div>
-                            
-                            <div class="status-step cancelled">
-                                <div class="step-icon">
-                                    <i class="bi bi-x-circle"></i>
-                                </div>
-                                <div class="step-label">Cancelled</div>
-                                <div class="step-date"></div>
-                            </div>
-                        </div>
-                        
-                        <div class="text-center mt-4">
-                            <div class="bg-light rounded-pill py-3 px-4 d-inline-flex align-items-center">
-                                <span class="badge bg-info fs-6 rounded-pill me-3">
-                                    <i class="bi bi-truck me-1"></i> Current Status: Shipped
-                                </span>
-                                <span class="text-muted">Last updated: Today at 10:15 AM</span>
-                            </div>
-                        </div>
-                    </div>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0"><i class="bi bi-truck me-2"></i>Track Order #{{ order_id }}</h2>
+                <a href="{% url 'track_order' %}" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Orders
+                </a>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Order Status</h5>
                 </div>
-                
-                <!-- Order Items -->
-                <div class="order-card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Order Items</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="order-item">
-                            <div class="item-img">
-                                <i class="bi bi-headphones"></i>
-                            </div>
-                            <div class="item-details">
-                                <div class="item-name">Wireless Bluetooth Headphones</div>
-                                <div class="item-meta">Color: Black | Model: ProX-2023</div>
-                            </div>
-                            <div class="item-price">₹2,499</div>
-                        </div>
-                        
-                        <div class="order-item">
-                            <div class="item-img">
-                                <i class="bi bi-phone"></i>
-                            </div>
-                            <div class="item-details">
-                                <div class="item-name">Smartphone Case</div>
-                                <div class="item-meta">For iPhone 14 Pro | Color: Transparent</div>
-                            </div>
-                            <div class="item-price">₹449 × 2</div>
-                        </div>
-                        
-                        <div class="order-item">
-                            <div class="item-img">
-                                <i class="bi bi-usb-plug"></i>
-                            </div>
-                            <div class="item-details">
-                                <div class="item-name">Fast Charging Adapter</div>
-                                <div class="item-meta">25W | USB-C</div>
-                            </div>
-                            <div class="item-price">₹799</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Shipping Information -->
-                <div class="order-card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Shipping Information</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="shipping-info">
-                            <div class="info-item">
-                                <div class="info-icon">
-                                    <i class="bi bi-person-circle"></i>
+                <div class="card-body">
+                    <div class="progress-container">
+                        <div class="progress-steps">
+                            {% for status in statuses %}
+                            <div class="step {% if forloop.counter0 <= current_status_index %}completed{% endif %}">
+                                <div class="step-icon">
+                                    {% if forloop.counter0 < current_status_index %}
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    {% elif forloop.counter0 == current_status_index %}
+                                    <i class="bi bi-arrow-right-circle-fill"></i>
+                                    {% else %}
+                                    <i class="bi bi-circle"></i>
+                                    {% endif %}
                                 </div>
-                                <div>
-                                    <strong>Rahul Sharma</strong>
-                                    <p class="mb-0">+91 98765 43210</p>
-                                </div>
+                                <div class="step-label">{{ status }}</div>
                             </div>
-                            
-                            <div class="info-item">
-                                <div class="info-icon">
-                                    <i class="bi bi-geo-alt"></i>
-                                </div>
-                                <div>
-                                    <strong>Delivery Address</strong>
-                                    <p class="mb-0">123 Main Street, Apartment 4B<br>Mumbai, 400001<br>Maharashtra, India</p>
-                                </div>
-                            </div>
-                            
-                            <div class="info-item">
-                                <div class="info-icon">
-                                    <i class="bi bi-truck"></i>
-                                </div>
-                                <div>
-                                    <strong>Shipping Method</strong>
-                                    <p class="mb-0">Standard Delivery (3-5 business days)<br>Tracking ID: TRK-7894561230</p>
-                                </div>
-                            </div>
+                            {% endfor %}
                         </div>
                     </div>
                 </div>
             </div>
-            
-            <!-- Right Column -->
-            <div class="col-lg-4">
-                <!-- Order Summary -->
-                <div class="order-card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Order Summary</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="summary-item">
-                            <span>Subtotal (3 items)</span>
-                            <span>₹3,747</span>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Order Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Order Information</h6>
+                            <p><strong>Order ID:</strong> {{ order.order_id }}</p>
+                            <p><strong>Order Date:</strong> {{ order.created_at|date:"F j, Y" }}</p>
+                            <p><strong>Status:</strong> <span class="badge bg-info">{{ order.get_status_display }}</span></p>
                         </div>
-                        
-                        <div class="summary-item">
-                            <span>Discount</span>
-                            <span class="text-success">-₹300</span>
-                        </div>
-                        
-                        <div class="summary-item">
-                            <span>Shipping</span>
-                            <span class="text-success">FREE</span>
-                        </div>
-                        
-                        <div class="summary-item">
-                            <span>Tax</span>
-                            <span>₹187</span>
-                        </div>
-                        
-                        <div class="summary-item summary-total">
-                            <span>Total</span>
-                            <span>₹3,634</span>
+                        <div class="col-md-6">
+                            <h6>Shipping Address</h6>
+                            <p>{{ order.full_name }}<br>
+                            {{ order.address }}<br>
+                            {{ order.city }}, {{ order.pincode }}<br>
+                            Phone: {{ order.phone }}</p>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Payment Information -->
-                <div class="order-card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Payment Information</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="info-item">
-                            <div class="info-icon">
-                                <i class="bi bi-credit-card"></i>
-                            </div>
-                            <div>
-                                <strong>Payment Method</strong>
-                                <p class="mb-0">Credit Card ending in 4567</p>
-                            </div>
-                        </div>
-                        
-                        <div class="info-item">
-                            <div class="info-icon">
-                                <i class="bi bi-wallet2"></i>
-                            </div>
-                            <div>
-                                <strong>Payment Status</strong>
-                                <p class="mb-0"><span class="badge bg-success">Paid</span></p>
-                            </div>
-                        </div>
-                        
-                        <div class="info-item mb-0">
-                            <div class="info-icon">
-                                <i class="bi bi-receipt"></i>
-                            </div>
-                            <div>
-                                <strong>Billing Address</strong>
-                                <p class="mb-0">Same as shipping address</p>
-                            </div>
-                        </div>
-                    </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Order Items</h5>
                 </div>
-                
-                <!-- Support Card -->
-                <div class="order-card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Need Help?</h5>
-                    </div>
-                    <div class="card-body">
-                        <p>If you have any questions about your order, our customer service team is happy to help.</p>
-                        
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-outline-primary action-btn">
-                                <i class="bi bi-chat-dots me-2"></i> Contact Support
-                            </button>
-                            <button class="btn btn-outline-secondary action-btn">
-                                <i class="bi bi-question-circle me-2"></i> View FAQs
-                            </button>
-                        </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Quantity</th>
+                                    <th>Price</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order.products %}
+                                <tr>
+                                    <td>{{ item.name }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>₹{{ item.total }}</td>
+                                </tr>
+                                {% endfor %}
+                                <tr class="table-secondary">
+                                    <td colspan="2" class="text-end"><strong>Total:</strong></td>
+                                    <td><strong>₹{{ order.total_amount }}</strong></td>
+                                </tr>
+                                {% if order.discount_amount > 0 %}
+                                <tr class="table-success">
+                                    <td colspan="2" class="text-end"><strong>Discount:</strong></td>
+                                    <td><strong>-₹{{ order.discount_amount }}</strong></td>
+                                </tr>
+                                <tr class="table-secondary">
+                                    <td colspan="2" class="text-end"><strong>Grand Total:</strong></td>
+                                    <td><strong>₹{{ order.total_amount|add:order.discount_amount }}</strong></td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Refresh button functionality
-            const refreshBtn = document.getElementById('refreshBtn');
-            const refreshIcon = refreshBtn.querySelector('i');
-            
-            refreshBtn.addEventListener('click', function() {
-                // Add spinning animation
-                refreshIcon.classList.add('refreshing');
-                
-                // Simulate refresh action
-                setTimeout(function() {
-                    // Remove spinning animation
-                    refreshIcon.classList.remove('refreshing');
-                    
-                    // Show success message
-                    const alertDiv = document.createElement('div');
-                    alertDiv.className = 'alert alert-success alert-dismissible fade show mt-3';
-                    alertDiv.innerHTML = `
-                        <i class="bi bi-check-circle me-2"></i>
-                        <strong>Status updated!</strong> Your order information is current.
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    `;
-                    
-                    // Insert after the header
-                    document.querySelector('.order-header').after(alertDiv);
-                }, 1500);
-            });
-        });
-    </script>
-</body>
-</html>
+<style>
+.progress-container {
+    padding: 20px 0;
+}
+
+.progress-steps {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+}
+
+.progress-steps::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background-color: #e9ecef;
+    z-index: 1;
+}
+
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+}
+
+.step-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    font-size: 1.2rem;
+}
+
+.step.completed .step-icon {
+    color: #198754;
+}
+
+.step:not(.completed) .step-icon {
+    color: #6c757d;
+}
+
+.step-label {
+    font-size: 0.875rem;
+    text-align: center;
+}
+</style>
+
+{% endblock %}

@@ -56,6 +56,7 @@ TEMPLATES = [
                 'customer.context_processors.categories_processor',
                 'customer.context_processors.current_year',
                 'customer.context_processors.global_context',
+                'customer.context_processors.profile_picture'
 
             ],
         },

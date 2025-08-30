@@ -181,6 +181,30 @@
                 padding: 1.5rem;
             }
         }
+        .hackerrank-input[type="file"] {
+    padding: 10px;
+}
+
+.hackerrank-input[type="file"]::file-selector-button {
+    background: #2a2a2a;
+    border: 1px solid #3e3e3e;
+    color: #f2f2f2;
+    padding: 8px 16px;
+    border-radius: 4px;
+    margin-right: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.hackerrank-input[type="file"]::file-selector-button:hover {
+    background: #3e3e3e;
+}
+
+/* Image preview styling */
+#imagePreview img {
+    border: 2px solid #2a8ab8;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
     </style>
 </head>
 <body>
@@ -253,7 +277,18 @@
                                 </div>
                                 <div id="passwordMatch" class="mt-2"></div>
                             </div>
-                            
+                             <div class="mb-4">
+                                <label for="profile_picture" class="form-label">Profile Picture (Optional)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text hackerrank-input" style="border-right: none;">
+                                        <i class="fas fa-camera text-muted"></i>
+                                    </span>
+                                    <input type="file" class="form-control hackerrank-input" id="profile_picture" 
+                                           name="profile_picture" accept="image/*" style="border-left: none;">
+                                </div>
+                                <small class="text-muted">Upload a profile picture (JPG, PNG, etc.)</small>
+                                <div id="imagePreview" class="mt-2 text-center"></div>
+                            </div>
                             <button type="submit" class="btn btn-primary w-100 mb-3">
                                 <i class="fas fa-user-plus me-2"></i> Create Account
                             </button>
@@ -385,6 +420,32 @@
                 element.style.animationDelay = `${index * 0.1}s`;
             });
         });
+
+              // NEW: Image preview functionality
+            const profilePictureInput = document.getElementById('profile_picture');
+            const imagePreview = document.getElementById('imagePreview');
+            
+            profilePictureInput.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    
+                    reader.addEventListener('load', function() {
+                        imagePreview.innerHTML = `
+                            <div class="d-flex flex-column align-items-center">
+                                <img src="${reader.result}" class="img-thumbnail mb-2" 
+                                     style="max-width: 150px; max-height: 150px; border-radius: 50%;">
+                                <small class="text-success">Image preview</small>
+                            </div>
+                        `;
+                    });
+                    
+                    reader.readAsDataURL(file);
+                } else {
+                    imagePreview.innerHTML = '';
+                }
+            });
+        
     </script>
 </body>
 </html>
