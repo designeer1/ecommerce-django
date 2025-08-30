@@ -4,52 +4,717 @@
 {% block content %}
 <div class="container mt-4">
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="hackerrank-card p-4">
-                <h2 class="gradient-text mb-4">Profile Settings</h2>
-                
-                {% if messages %}
-                {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="col-md-10">
+            <div class="hackerrank-card p-4 profile-settings-card">
+                <!-- Header Section -->
+                <div class="settings-header mb-4">
+                    <div class="d-flex align-items-center">
+                        <div class="header-icon me-3">
+                            <i class="fas fa-user-cog"></i>
+                        </div>
+                        <div>
+                            <h2 class="gradient-text mb-1">Profile Settings</h2>
+                            <p class="text-muted mb-0">Manage your account information and preferences</p>
+                        </div>
+                    </div>
                 </div>
-                {% endfor %}
+                
+                <!-- Messages -->
+                {% if messages %}
+                <div class="messages-container mb-4">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show custom-alert" role="alert">
+                        <div class="d-flex align-items-center">
+                            <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %} me-2"></i>
+                            <span>{{ message }}</span>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                </div>
                 {% endif %}
                 
-                <form method="post" enctype="multipart/form-data">
-                    {% csrf_token %}
+                <!-- Settings Navigation Tabs -->
+                <ul class="nav nav-tabs settings-tabs mb-4" id="settingsTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="true">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button" role="tab" aria-controls="security" aria-selected="false">
+                            <i class="fas fa-shield-alt me-2"></i>Security
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="preferences-tab" data-bs-toggle="tab" data-bs-target="#preferences" type="button" role="tab" aria-controls="preferences" aria-selected="false">
+                            <i class="fas fa-cog me-2"></i>Preferences
+                        </button>
+                    </li>
+                </ul>
+                
+                <!-- Tab Content -->
+                <div class="tab-content" id="settingsTabsContent">
+                    <!-- Profile Tab -->
+                    <div class="tab-pane fade show active" id="profile" role="tabpanel" aria-labelledby="profile-tab">
+                        <form method="post" enctype="multipart/form-data" id="profileForm">
+                            {% csrf_token %}
+                            
+                            <div class="row">
+                                <!-- Profile Picture Section -->
+                                <div class="col-md-4 mb-4">
+                                    <div class="profile-picture-section">
+                                        <label class="form-label section-label">Profile Picture</label>
+                                        <div class="profile-image-container text-center mb-3">
+                                            {% if user_profile.profile_picture %}
+                                            <img src="{{ user_profile.profile_picture.url }}" alt="Profile" 
+                                                 class="img-fluid rounded-circle profile-image-editable">
+                                            {% else %}
+                                            <div class="profile-placeholder-editable rounded-circle">
+                                                <i class="fas fa-user-circle"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div class="profile-overlay-editable rounded-circle">
+                                                <i class="fas fa-camera"></i>
+                                            </div>
+                                            <input type="file" id="{{ form.profile_picture.id_for_label }}" name="{{ form.profile_picture.name }}" class="d-none" accept="image/*">
+                                        </div>
+                                        
+                                        <div class="text-center">
+                                            <button type="button" class="btn btn-outline-light btn-sm me-2" onclick="document.getElementById('{{ form.profile_picture.id_for_label }}').click()">
+                                                <i class="fas fa-upload me-1"></i>Change
+                                            </button>
+                                            {% if user_profile.profile_picture %}
+                                            <button type="button" class="btn btn-outline-danger btn-sm" id="removeProfilePicture">
+                                                <i class="fas fa-trash me-1"></i>Remove
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                        <div class="form-text text-center mt-2">JPG, PNG or GIF. Max 5MB.</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Form Fields -->
+                                <div class="col-md-8">
+                                    <div class="settings-form">
+                                        <div class="mb-4">
+                                            <label class="form-label section-label">Account Information</label>
+                                            
+                                           <div class="mb-3">
+    <label for="username" class="form-label">Username</label>
+    <div class="input-group">
+        <span class="input-group-text hackerrank-input input-icon">
+            <i class="fas fa-user-tag"></i>
+        </span>
+        <input type="text" class="form-control hackerrank-input" id="username" 
+               value="{{ user.username }}" disabled
+               style="color: #f2f2f2 !important; background-color: #1e1e1e !important;">
+    </div>
+    <small class="text-muted">Username cannot be changed</small>
+</div>
+                                            
+                                            <div class="mb-3">
+                                                <label for="{{ form.email.id_for_label }}" class="form-label">Email Address</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text hackerrank-input input-icon">
+                                                        <i class="fas fa-envelope"></i>
+                                                    </span>
+                                                    {{ form.email }}
+                                                </div>
+                                                <div class="form-text">We'll never share your email with anyone else.</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-4">
+                                            <label class="form-label section-label">Personal Details</label>
+                                            
+                                            <div class="mb-3">
+                                                <label for="{{ form.phone_number.id_for_label }}" class="form-label">Phone Number</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text hackerrank-input input-icon">
+                                                        <i class="fas fa-phone"></i>
+                                                    </span>
+                                                    {{ form.phone_number }}
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label for="{{ form.date_of_birth.id_for_label }}" class="form-label">Date of Birth</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text hackerrank-input input-icon">
+                                                        <i class="fas fa-birthday-cake"></i>
+                                                    </span>
+                                                    {{ form.date_of_birth }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="d-grid">
+                                            <button type="submit" class="btn btn-premium btn-lg">
+                                                <i class="fas fa-save me-2"></i>Update Profile
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
                     
-                    <div class="mb-3">
-                        <label class="form-label">Current Profile Picture</label>
-                        <div class="mb-2">
-                            {% if user_profile.profile_picture %}
-                            <img src="{{ user_profile.profile_picture.url }}" alt="Profile" class="profile-img" style="width: 100px; height: 100px;">
-                            {% else %}
-                            <i class="fas fa-user-circle fa-5x"></i>
-                            {% endif %}
+                    <!-- Security Tab -->
+                    <div class="tab-pane fade" id="security" role="tabpanel" aria-labelledby="security-tab">
+                        <div class="security-settings">
+                            <div class="mb-4">
+                                <label class="form-label section-label">Password</label>
+                                <p class="text-muted">Last changed: 2 months ago</p>
+                                
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                                        <i class="fas fa-key me-2"></i>Change Password
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label section-label">Two-Factor Authentication</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="twoFactorSwitch">
+                                    <label class="form-check-label" for="twoFactorSwitch">
+                                        Enable two-factor authentication
+                                    </label>
+                                </div>
+                                <div class="form-text">Add an extra layer of security to your account</div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label section-label">Active Sessions</label>
+                                <div class="sessions-list">
+                                    <div class="session-item">
+                                        <div class="session-info">
+                                            <div class="session-device">
+                                                <i class="fas fa-desktop me-2"></i>
+                                                Windows 10 • Chrome
+                                            </div>
+                                            <div class="session-details">
+                                                <span class="session-location">New York, US</span>
+                                                <span class="session-time">Current session</span>
+                                            </div>
+                                        </div>
+                                        <div class="session-actions">
+                                            <button class="btn btn-sm btn-outline-danger">Logout</button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="session-item">
+                                        <div class="session-info">
+                                            <div class="session-device">
+                                                <i class="fas fa-mobile-alt me-2"></i>
+                                                iOS • Safari
+                                            </div>
+                                            <div class="session-details">
+                                                <span class="session-location">California, US</span>
+                                                <span class="session-time">2 days ago</span>
+                                            </div>
+                                        </div>
+                                        <div class="session-actions">
+                                            <button class="btn btn-sm btn-outline-danger">Logout</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="{{ form.profile_picture.id_for_label }}" class="form-label">Change Profile Picture</label>
-                        {{ form.profile_picture }}
+                    <!-- Preferences Tab -->
+                    <div class="tab-pane fade" id="preferences" role="tabpanel" aria-labelledby="preferences-tab">
+                        <div class="preferences-settings">
+                            <div class="mb-4">
+                                <label class="form-label section-label">Notification Preferences</label>
+                                
+                                <div class="preference-item">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="emailNotifications" checked>
+                                        <label class="form-check-label" for="emailNotifications">
+                                            Email notifications
+                                        </label>
+                                    </div>
+                                    <div class="form-text">Receive important updates via email</div>
+                                </div>
+                                
+                                <div class="preference-item">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="promotionalEmails" checked>
+                                        <label class="form-check-label" for="promotionalEmails">
+                                            Promotional emails
+                                        </label>
+                                    </div>
+                                    <div class="form-text">Receive offers and promotions</div>
+                                </div>
+                                
+                                <div class="preference-item">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="orderUpdates" checked>
+                                        <label class="form-check-label" for="orderUpdates">
+                                            Order updates
+                                        </label>
+                                    </div>
+                                    <div class="form-text">Get notified about your order status</div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label section-label">Privacy Settings</label>
+                                
+                                <div class="preference-item">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="profileVisibility" checked>
+                                        <label class="form-check-label" for="profileVisibility">
+                                            Public profile
+                                        </label>
+                                    </div>
+                                    <div class="form-text">Allow others to see your profile</div>
+                                </div>
+                                
+                                <div class="preference-item">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="searchVisibility" checked>
+                                        <label class="form-check-label" for="searchVisibility">
+                                            Search engine visibility
+                                        </label>
+                                    </div>
+                                    <div class="form-text">Allow search engines to index your profile</div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button class="btn btn-premium">
+                                    <i class="fas fa-save me-2"></i>Save Preferences
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label for="{{ form.phone_number.id_for_label }}" class="form-label">Phone Number</label>
-                        {{ form.phone_number }}
-                    </div>
-                    
-                    <div class="mb-4">
-                        <label for="{{ form.date_of_birth.id_for_label }}" class="form-label">Date of Birth</label>
-                        {{ form.date_of_birth }}
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary w-100">Update Profile</button>
-                </form>
+                </div>
+                
+                <hr class="my-4">
+                
+                <div class="text-center">
+                    <a href="{% url 'profile' %}" class="btn btn-outline-light">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Profile
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Change Password Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content hackerrank-card">
+            <div class="modal-header">
+                <h5 class="modal-title gradient-text" id="changePasswordModalLabel">Change Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="currentPassword" class="form-label">Current Password</label>
+                        <input type="password" class="form-control hackerrank-input" id="currentPassword">
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">New Password</label>
+                        <input type="password" class="form-control hackerrank-input" id="newPassword">
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirm New Password</label>
+                        <input type="password" class="form-control hackerrank-input" id="confirmPassword">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-premium">Update Password</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Premium Settings Styles */
+    .profile-settings-card {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .profile-settings-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #2a8ab8, #42b983);
+        z-index: 1;
+    }
+    
+    .settings-header {
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #3e3e3e;
+    }
+    
+    .header-icon {
+        width: 50px;
+        height: 50px;
+        background: rgba(42, 138, 184, 0.2);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: #2a8ab8;
+    }
+    
+    .custom-alert {
+        border: none;
+        border-radius: 10px;
+        background: rgba(42, 138, 184, 0.1);
+        color: #f2f2f2;
+    }
+    
+    .alert-success {
+        background: rgba(66, 185, 131, 0.1) !important;
+        border-left: 4px solid #42b983;
+    }
+    
+    .alert-danger {
+        background: rgba(255, 107, 107, 0.1) !important;
+        border-left: 4px solid #ff6b6b;
+    }
+    
+    .settings-tabs {
+        border-bottom: 1px solid #3e3e3e;
+    }
+    
+    .settings-tabs .nav-link {
+        color: #868e96;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 8px 8px 0 0;
+        transition: all 0.3s ease;
+    }
+    
+    .settings-tabs .nav-link:hover {
+        color: #f2f2f2;
+        background: rgba(42, 138, 184, 0.1);
+    }
+    
+    .settings-tabs .nav-link.active {
+        color: #2a8ab8;
+        background: transparent;
+        border-bottom: 3px solid #2a8ab8;
+        font-weight: 600;
+    }
+    
+    .section-label {
+        font-weight: 600;
+        color: #2a8ab8;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+        letter-spacing: 0.5px;
+        margin-bottom: 15px;
+        display: block;
+    }
+    
+    .profile-picture-section {
+        padding: 20px;
+        background: rgba(42, 138, 184, 0.05);
+        border-radius: 12px;
+        text-align: center;
+    }
+    
+    .profile-image-container {
+        position: relative;
+        display: inline-block;
+        cursor: pointer;
+        margin-bottom: 15px;
+    }
+    
+    .profile-image-editable {
+        width: 120px;
+        height: 120px;
+        object-fit: cover;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(42, 138, 184, 0.3);
+    }
+    
+    .profile-placeholder-editable {
+        width: 120px;
+        height: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #2a2a2a;
+        font-size: 4rem;
+        color: #3e3e3e;
+        box-shadow: 0 5px 15px rgba(42, 138, 184, 0.3);
+    }
+    
+    .profile-overlay-editable {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(42, 138, 184, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: all 0.3s ease;
+        color: white;
+        font-size: 1.2rem;
+    }
+    
+    .profile-image-container:hover .profile-overlay-editable {
+        opacity: 1;
+    }
+    
+    .profile-image-container:hover .profile-image-editable {
+        transform: scale(1.05);
+    }
+    
+    .settings-form .form-label {
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+    
+    .input-icon {
+        background: rgba(42, 138, 184, 0.1);
+        border-right: none;
+        color: #2a8ab8;
+    }
+    
+    .input-icon + .form-control {
+        border-left: none;
+    }
+    
+    .security-settings, .preferences-settings {
+        padding: 0 10px;
+    }
+    
+    .session-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px;
+        background: rgba(42, 138, 184, 0.05);
+        border-radius: 8px;
+        margin-bottom: 10px;
+        transition: all 0.3s ease;
+    }
+    
+    .session-item:hover {
+        background: rgba(42, 138, 184, 0.1);
+    }
+    
+    .session-device {
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    
+    .session-details {
+        display: flex;
+        gap: 15px;
+        font-size: 0.85rem;
+        color: #868e96;
+    }
+    
+    .session-location:after {
+        content: "•";
+        margin-left: 10px;
+    }
+    
+    .preference-item {
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #3e3e3e;
+    }
+    
+    .preference-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+    
+    .form-switch .form-check-input {
+        width: 3em;
+        background-color: #3e3e3e;
+        border: none;
+        margin-right: 10px;
+    }
+    
+    .form-switch .form-check-input:checked {
+        background-color: #2a8ab8;
+    }
+    
+    .btn-premium {
+        background: linear-gradient(135deg, #2a8ab8, #42b983);
+        border: none;
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(42, 138, 184, 0.3);
+    }
+    
+    .btn-premium:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(42, 138, 184, 0.4);
+    }
+    
+    /* Modal Styles */
+    .modal-content.hackerrank-card {
+        background: #2a2a2a;
+        border: 1px solid #3e3e3e;
+        border-radius: 12px;
+    }
+    
+    .modal-header {
+        border-bottom: 1px solid #3e3e3e;
+    }
+    
+    .modal-footer {
+        border-top: 1px solid #3e3e3e;
+    }
+    
+    /* Animations */
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .profile-settings-card {
+        animation: fadeInUp 0.5s ease forwards;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .settings-tabs .nav-link {
+            padding: 10px 15px;
+            font-size: 0.9rem;
+        }
+        
+        .session-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .session-actions {
+            align-self: flex-end;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add Bootstrap styling to form fields
+        const inputs = document.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            if (!input.classList.contains('hackerrank-input')) {
+                input.classList.add('hackerrank-input');
+            }
+        });
+        
+        // Profile picture upload trigger
+        const profileImageContainer = document.querySelector('.profile-image-container');
+        const fileInput = document.getElementById('{{ form.profile_picture.id_for_label }}');
+        
+        profileImageContainer.addEventListener('click', function() {
+            fileInput.click();
+        });
+        
+        // Preview image when selected
+        fileInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.querySelector('.profile-image-editable') || 
+                               document.querySelector('.profile-placeholder-editable');
+                    
+                    if (img.tagName === 'IMG') {
+                        img.src = e.target.result;
+                    } else {
+                        // Replace placeholder with image
+                        const newImg = document.createElement('img');
+                        newImg.src = e.target.result;
+                        newImg.classList.add('img-fluid', 'rounded-circle', 'profile-image-editable');
+                        newImg.style.width = '120px';
+                        newImg.style.height = '120px';
+                        newImg.style.objectFit = 'cover';
+                        
+                        img.parentNode.replaceChild(newImg, img);
+                    }
+                }
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+        
+        // Remove profile picture
+        const removeButton = document.getElementById('removeProfilePicture');
+        if (removeButton) {
+            removeButton.addEventListener('click', function() {
+                const profileImage = document.querySelector('.profile-image-editable');
+                if (profileImage) {
+                    // Create placeholder
+                    const placeholder = document.createElement('div');
+                    placeholder.classList.add('profile-placeholder-editable', 'rounded-circle');
+                    placeholder.innerHTML = '<i class="fas fa-user-circle"></i>';
+                    placeholder.style.width = '120px';
+                    placeholder.style.height = '120px';
+                    placeholder.style.display = 'flex';
+                    placeholder.style.alignItems = 'center';
+                    placeholder.style.justifyContent = 'center';
+                    placeholder.style.fontSize = '4rem';
+                    placeholder.style.color = '#3e3e3e';
+                    placeholder.style.background = '#2a2a2a';
+                    
+                    profileImage.parentNode.replaceChild(placeholder, profileImage);
+                    
+                    // Clear file input
+                    fileInput.value = '';
+                    
+                    // Show message
+                    alert('Profile picture will be removed when you save changes');
+                }
+            });
+        }
+        
+        // Tab functionality
+        const tabPanes = document.querySelectorAll('.tab-pane');
+        tabPanes.forEach((pane, index) => {
+            pane.style.opacity = '0';
+            pane.style.transform = 'translateY(10px)';
+            pane.style.transition = 'all 0.5s ease';
+            
+            setTimeout(() => {
+                if (pane.classList.contains('active')) {
+                    pane.style.opacity = '1';
+                    pane.style.transform = 'translateY(0)';
+                }
+            }, 100);
+        });
+        
+        // Add event listeners to tab buttons
+        const tabButtons = document.querySelectorAll('[data-bs-toggle="tab"]');
+        tabButtons.forEach(button => {
+            button.addEventListener('shown.bs.tab', function(e) {
+                const targetPane = document.querySelector(e.target.getAttribute('data-bs-target'));
+                targetPane.style.opacity = '1';
+                targetPane.style.transform = 'translateY(0)';
+            });
+        });
+    });
+</script>
 {% endblock %}

@@ -210,27 +210,28 @@
         }
 
         .profile-img {
-    width: 32px;
-    height: 32px;
-    object-fit: cover;
-    border: 2px solid #2a8ab8;
-    border-radius: 50%;
-}
+            width: 32px;
+            height: 32px;
+            object-fit: cover;
+            border: 2px solid #2a8ab8;
+            border-radius: 50%;
+        }
 
-/* Ensure dropdown menu items are properly aligned */
-.dropdown-item {
-    display: flex;
-    align-items: center;
-}
+        /* Ensure dropdown menu items are properly aligned */
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+        }
 
-.dropdown-item-text {
-    color: #f2f2f2;
-    font-weight: 500;
-}
+        .dropdown-item-text {
+            color: #f2f2f2;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
 
+<!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand gradient-text" href="{% url 'customer_home' %}">
@@ -293,7 +294,7 @@
                 </li>
             </ul>
 
-            <!-- Corrected User Section -->
+            <!-- User Section -->
             <ul class="navbar-nav ms-auto">
                 {% if user.is_authenticated %}
                 <li class="nav-item dropdown">
@@ -311,6 +312,11 @@
                             <span class="dropdown-item-text fw-bold">Hi, {{ user.username }}</span>
                         </li>
                         <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'profile' %}">
+                                <i class="fas fa-user me-2"></i>Profile
+                            </a>
+                        </li>
                         <li>
                             <a class="dropdown-item" href="{% url 'profile_settings' %}">
                                 <i class="fas fa-cog me-2"></i>Settings
@@ -363,7 +369,6 @@
         <small class="text-muted">Designed and developed with ❤️ using Django & Bootstrap</small>
     </div>
 </footer>
-
 
 <script>
     // Handle nested dropdowns in Bootstrap 5

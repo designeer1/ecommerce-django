@@ -164,6 +164,7 @@ from django.contrib.auth.decorators import login_required
 from .forms import ProfileUpdateForm
 
 # Add this view function
+# views.py
 @login_required
 def profile_settings(request):
     profile = CustomerProfile.objects.get(user=request.user)
@@ -179,6 +180,25 @@ def profile_settings(request):
     
     return render(request, 'customer/profile_settings.html', {
         'form': form
+    })
+# views.py
+# views.py
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def profile_view(request):
+    try:
+        profile = CustomerProfile.objects.get(user=request.user)
+    except CustomerProfile.DoesNotExist:
+        profile = CustomerProfile.objects.create(user=request.user)
+    
+    # Get user's recent orders
+    recent_orders = CustomerOrder.objects.filter(user=request.user).order_by('-order_date')[:5]
+    
+    return render(request, 'customer/profile.html', {
+        'profile': profile,
+        'recent_orders': recent_orders,
+        'user': request.user
     })
 
 # ---------- Shop ----------
