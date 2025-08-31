@@ -745,6 +745,23 @@ def add_subcategory(request):
             # Save the updated data to JSON
             save_data(data)
             
+            # Create notification for new product
+            try:
+                from customer.models import NewProductNotification
+                # Check if notification already exists for this product
+                if not NewProductNotification.objects.filter(product_name=product_name).exists():
+                    NewProductNotification.objects.create(
+                        product_name=product_name,
+                        is_active=True
+                    )
+                    print(f"Notification created for product: {product_name}")
+                else:
+                    print(f"Notification already exists for product: {product_name}")
+            except ImportError:
+                print("Customer app not available for notifications")
+            except Exception as e:
+                print(f"Error creating notification: {str(e)}")
+            
             # Redirect back to manage_subcategory with success message
             return redirect(reverse('manage_subcategory') + '?success=Product added successfully')
 

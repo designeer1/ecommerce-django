@@ -732,3 +732,77 @@ def order_history(request):
         "page_obj": page_obj,
         "orders_count": orders.count()
     })
+# customer/views.py
+from .models import NewProductNotification
+
+def notifications_view(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'count': 0, 'notifications': []})
+    
+    # Get unread notifications
+    unread_notifications = NewProductNotification.objects.filter(
+        is_active=True
+    ).exclude(
+        notified_users=request.user
+    )
+    
+    count = unread_notifications.count()
+    
+    # Prepare notification data
+    notifications = []
+    for notification in unread_notifications[:5]:  # Limit to 5 most recent
+        # Find the product details
+        product = next((p for p in get_all_products() if p.get("name") == notification.product_name), None)
+        if product:
+            notifications.append({
+                'id': notification.id,
+                'product_name': notification.product_name,
+                'added_date': notification.added_date.strftime('%Y-%m-%d %H:%M'),
+                'image_path': product.get('image_path', '/media/products/default.png'),
+                'product_url': reverse('product_detail', args=[notification.product_name])
+            })
+    
+    return JsonResponse({
+        'count': count,
+        'notifications': notifications
+    })
+
+def mark_notification_read(request, notification_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False})
+    
+    try:
+        notification = NewProductNotification.objects.get(id=notification_id)
+        notification.notified_users.add(request.user)
+        return JsonResponse({'success': True})
+    except NewProductNotification.DoesNotExist:
+        return JsonResponse({'success': False})
+
+# customer/views.py
+def all_notifications_view(request):
+    if not request.user.is_authenticated:
+        return redirect('customer_login')
+    
+    # Get all notifications (both read and unread)
+    all_notifications = NewProductNotification.objects.filter(is_active=True)
+    
+    # Mark all as read for this user
+    for notification in all_notifications.exclude(notified_users=request.user):
+        notification.notified_users.add(request.user)
+    
+    # Prepare notification data with product details
+    notifications_with_details = []
+    for notification in all_notifications:
+        product = next((p for p in get_all_products() if p.get("name") == notification.product_name), None)
+        if product:
+            is_read = notification.notified_users.filter(id=request.user.id).exists()
+            notifications_with_details.append({
+                'notification': notification,
+                'product': product,
+                'is_read': is_read,
+                'product_url': reverse('product_detail', args=[notification.product_name])
+            })
+    
+    return render(request, 'customer/all_notifications.html', {
+        'notifications': notifications_with_details
+    })

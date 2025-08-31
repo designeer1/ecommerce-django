@@ -12,7 +12,18 @@ def user_profile_pic_path(instance, filename):
     filename = f"{uuid.uuid4()}.{ext}"
     return os.path.join(f"user_{instance.user.id}", "profile_pics", filename)
 
-
+# customer/models.py - Add this model
+class NewProductNotification(models.Model):
+    product_name = models.CharField(max_length=255)
+    added_date = models.DateTimeField(auto_now_add=True)
+    notified_users = models.ManyToManyField(User, blank=True)
+    is_active = models.BooleanField(default=True)
+    
+    def __str__(self):
+        return f"New Product: {self.product_name}"
+    
+    class Meta:
+        ordering = ['-added_date']
 class CustomerProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     profile_picture = models.ImageField(upload_to=user_profile_pic_path, blank=True, null=True)

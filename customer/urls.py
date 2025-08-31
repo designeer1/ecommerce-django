@@ -42,4 +42,8 @@ path('orders/history/', views.order_history, name='order_history'),
 path('profile/', views.profile_view, name='profile'),
     path('profile/settings/', views.profile_settings, name='profile_settings'),
 
+     path('notifications/', views.notifications_view, name='customer_notifications'),
+    path('notifications/mark-read/<int:notification_id>/', views.mark_notification_read, name='mark_notification_read'),
+    path('all-notifications/', views.all_notifications_view, name='all_notifications'),
+
 ]

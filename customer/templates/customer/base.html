@@ -227,6 +227,36 @@
             color: #f2f2f2;
             font-weight: 500;
         }
+        /* Add to your existing CSS */
+#notification-list {
+    width: 350px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+#notification-list .dropdown-item {
+    border-bottom: 1px solid #3e3e3e;
+    padding: 10px 15px;
+}
+
+#notification-list .dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.mark-as-read {
+    opacity: 0.7;
+    transition: opacity 0.3s;
+}
+
+.mark-as-read:hover {
+    opacity: 1;
+}
+
+.list-group-item:hover {
+    background-color: #3a3a3a !important;
+    transform: translateX(5px);
+    transition: all 0.3s ease;
+}
     </style>
 </head>
 <body>
@@ -292,6 +322,22 @@
                         {% endif %}
                     </a>
                 </li>
+                <li class="nav-item dropdown">
+    <a class="nav-link dropdown-toggle position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="fas fa-bell me-1"></i>
+        <span id="notification-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none;">
+            0
+        </span>
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationDropdown" id="notification-list">
+        <li class="dropdown-header">New Products</li>
+        <div id="notification-items">
+            <li class="text-center py-3 text-muted">No new notifications</li>
+        </div>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item text-center" href="#" id="view-all-notifications">View All</a></li>
+    </ul>
+</li>
             </ul>
 
             <!-- User Section -->
@@ -418,7 +464,131 @@
             });
         });
     });
+
+    // ============ PASTE NOTIFICATION JAVASCRIPT CODE HERE ============
+    // Notification system
+    // Notification system
+document.addEventListener('DOMContentLoaded', function() {
+    const notificationCount = document.getElementById('notification-count');
+    const notificationItems = document.getElementById('notification-items');
+    const viewAllLink = document.getElementById('view-all-notifications');
+    
+    if (!notificationCount || !notificationItems || !viewAllLink) {
+        console.log('Notification elements not found');
+        return;
+    }
+    
+    // Function to fetch notifications
+    function fetchNotifications() {
+        console.log('Fetching notifications...');
+        fetch('/notifications/')  // Correct URL without customer/ prefix
+            .then(response => {
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Notifications data:', data);
+                // Update notification count
+                if (data.count > 0) {
+                    notificationCount.textContent = data.count;
+                    notificationCount.style.display = 'block';
+                    console.log('Notification count:', data.count);
+                } else {
+                    notificationCount.style.display = 'none';
+                    console.log('No notifications');
+                }
+                
+                // Update notification items
+                if (data.notifications && data.notifications.length > 0) {
+                    notificationItems.innerHTML = '';
+                    data.notifications.forEach(notification => {
+                        const li = document.createElement('li');
+                        li.className = 'dropdown-item d-flex align-items-center';
+                        li.innerHTML = `
+                            <img src="${notification.image_path}" alt="${notification.product_name}" 
+                                 style="width: 40px; height: 40px; object-fit: cover; border-radius: 5px; margin-right: 10px;">
+                            <div class="flex-grow-1">
+                                <div class="fw-bold">New Product!</div>
+                                <small>${notification.product_name}</small>
+                                <div class="text-muted"><small>${notification.added_date}</small></div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary mark-as-read" data-id="${notification.id}">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        `;
+                        notificationItems.appendChild(li);
+                    });
+                } else {
+                    notificationItems.innerHTML = '<li class="text-center py-3 text-muted">No new notifications</li>';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching notifications:', error);
+                notificationCount.style.display = 'none';
+            });
+    }
+    
+    // Fetch notifications on page load
+    fetchNotifications();
+    
+    // Set up periodic refresh (every 2 minutes)
+    setInterval(fetchNotifications, 120000);
+    
+    // Handle mark as read
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.mark-as-read')) {
+            const button = e.target.closest('.mark-as-read');
+            const notificationId = button.getAttribute('data-id');
+            
+            fetch(`/notifications/mark-read/${notificationId}/`, {  // Correct URL without customer/ prefix
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove the notification from the list
+                    button.closest('.dropdown-item').remove();
+                    // Update count
+                    fetchNotifications();
+                }
+            })
+            .catch(error => console.error('Error marking notification as read:', error));
+        }
+    });
+    
+    // View all notifications link - CORRECTED URL
+    viewAllLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        // Redirect to a page showing all notifications - use the correct URL
+        window.location.href = '/all-notifications/';  // Remove 'customer/' prefix
+    });
+    
+    // Helper function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+    // ============ END OF NOTIFICATION JAVASCRIPT CODE ============
 </script>
+
 
 </body>
 </html>
