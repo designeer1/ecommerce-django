@@ -42,7 +42,8 @@ def get_all_products():
                         "price": float(p.get("price", 0)),
                         "image_path": p.get("image", "/media/products/default.png"),
                         "description": p.get("description", ""),
-                        "rating": p.get("rating", 5)
+                        "rating": p.get("rating", 5),
+                        "quantity": p.get("quantity", 1)  # Ensure quantity is included
                     })
                     seen_products.add(product_name)
 
@@ -56,7 +57,8 @@ def get_all_products():
                     "price": float(p.get("price", 0)),
                     "image_path": p.get("image_path", "/media/products/default.png"),
                     "description": p.get("description", ""),
-                    "rating": p.get("rating", 5)
+                    "rating": p.get("rating", 5),
+                    "quantity": p.get("quantity", 1)  # Ensure quantity is included
                 })
                 seen_products.add(product_name)
 
@@ -114,7 +116,6 @@ def login_view(request):
         password = request.POST.get("password")
         user = authenticate(request, username=username, password=password)
         if user:
-            # Ensure user has a CustomerProfile
             profile, created = CustomerProfile.objects.get_or_create(user=user)
             login(request, user)
             return redirect("customer_home")
@@ -124,7 +125,6 @@ def login_view(request):
 
 def register_view(request):
     if request.method == "POST":
-        # Get form data
         username = request.POST.get("username")
         password = request.POST.get("password")
         confirm_password = request.POST.get("confirm_password")
@@ -135,23 +135,19 @@ def register_view(request):
         date_of_birth = request.POST.get("date_of_birth")
         profile_picture = request.FILES.get('profile_picture')
         
-        # Validate passwords match
         if password != confirm_password:
             messages.error(request, "Passwords do not match")
             return render(request, "customer/register.html")
             
-        # Check if username already exists
         if User.objects.filter(username=username).exists():
             messages.error(request, "Username already taken")
             return render(request, "customer/register.html")
             
-        # Check if email already exists
         if User.objects.filter(email=email).exists():
             messages.error(request, "Email already registered")
             return render(request, "customer/register.html")
             
         try:
-            # Create user with all fields
             user = User.objects.create_user(
                 username=username, 
                 password=password,
@@ -160,19 +156,16 @@ def register_view(request):
                 last_name=last_name
             )
             
-            # Create customer profile
             profile = CustomerProfile.objects.create(
                 user=user,
                 phone_number=phone_number,
                 date_of_birth=date_of_birth if date_of_birth else None
             )
             
-            # Handle profile picture if provided
             if profile_picture:
                 profile.profile_picture = profile_picture
                 profile.save()
             
-            # Log the user in after registration
             user = authenticate(request, username=username, password=password)
             if user:
                 login(request, user)
@@ -186,11 +179,11 @@ def register_view(request):
             messages.error(request, f"Error creating account: {str(e)}")
             return render(request, "customer/register.html")
     
-    # If GET request or form invalid, show registration form
     return render(request, "customer/register.html")
 
 def logout_view(request):
     logout(request)
+    request.session.flush()  # Clear all session data
     return redirect("customer_login")
 
 @login_required
@@ -217,7 +210,6 @@ def profile_view(request):
     except CustomerProfile.DoesNotExist:
         profile = CustomerProfile.objects.create(user=request.user)
     
-    # Get user's recent orders
     recent_orders = CustomerOrder.objects.filter(user=request.user).order_by('-order_date')[:5]
     
     return render(request, 'customer/profile.html', {
@@ -228,43 +220,31 @@ def profile_view(request):
 
 # ---------- Shop ----------
 def home(request):
-    # Load all product data
     data = load_data()
     all_products = []
     
-    # Ensure cart is a dictionary
     cart = request.session.get('cart', {})
     if not isinstance(cart, dict):
         cart = {}
         request.session['cart'] = cart
         request.session.modified = True
     
-    # Collect products from all users
     for email, user_data in data.get("user_data", {}).items():
         subcategories = user_data.get("subcategories", {})
         for category, products in subcategories.items():
             for product in products:
-                # Add category info
                 product["category"] = category
-
-                # Ensure image path
                 if "image" in product and not product["image"].startswith("/media/"):
                     product["image"] = f"/media/{product['image']}"
                 elif "image" not in product:
                     product["image"] = "/media/products/default.png"
-
-                # Adjust available quantity based on cart
                 cart_quantity = cart.get(product["name"], 0)
                 product["available_quantity"] = max(
                     0, product.get("quantity", 1) - cart_quantity
                 )
-
                 all_products.append(product)
 
-    # Cart count
     cart_count = sum(cart.values()) if cart else 0
-
-    # Check for new product notification
     new_product_added = request.session.pop('new_product_added', None)
 
     return render(request, "customer/home.html", {
@@ -321,14 +301,13 @@ def products_by_subcategory(request, sub_name):
 
 def product_detail(request, product_name):
     cart = request.session.get("cart", {})
-    if not isinstance(cart, dict):  # Ensure cart is a dictionary
+    if not isinstance(cart, dict):
         cart = {}
         request.session["cart"] = cart
         request.session.modified = True
 
     product = next((p for p in get_all_products() if p.get("name") == product_name), None)
     if product:
-        # Calculate available quantity
         cart_quantity = cart.get(product["name"], 0)
         product["available_quantity"] = max(0, product.get("quantity", 1) - cart_quantity)
         product["rating"] = product.get("rating", 5)
@@ -353,17 +332,19 @@ def product_detail(request, product_name):
         "all_products": get_all_products(),
         "cart_count": cart_count
     })
+
 # ---------- Cart ----------
 def add_to_cart(request, product_name):
-    # ✅ Get the current cart (dict format: {product_name: qty})
     cart = request.session.get('cart', {})
+    if not isinstance(cart, dict):
+        cart = {}
+        request.session['cart'] = cart
+        request.session.modified = True
 
-    # ✅ Load product data
     data = load_data()
     product_quantity = 0
     product_found = False
 
-    # Search for the product in all users' data
     for email, user_data in data.get("user_data", {}).items():
         subcategories = user_data.get("subcategories", {})
         for category, products in subcategories.items():
@@ -377,26 +358,22 @@ def add_to_cart(request, product_name):
         if product_found:
             break
 
-    # If product does not exist
     if not product_found:
         messages.error(request, f"Product {product_name} not found.")
-        return redirect("customer_home")
+        return redirect("product_detail", product_name=product_name)
 
-    # ✅ Check current cart quantity
     current_in_cart = cart.get(product_name, 0)
-
     if current_in_cart >= product_quantity:
         messages.warning(request, f"Sorry, only {product_quantity} units of {product_name} are available.")
-        return redirect("customer_home")
+        return redirect("product_detail", product_name=product_name)
 
-    # ✅ Add to cart
     cart[product_name] = current_in_cart + 1
     request.session['cart'] = cart
-    request.session['new_product_added'] = product_name  # notification
+    request.session['new_product_added'] = product_name
     request.session.modified = True
 
     messages.success(request, f"Added {product_name} to your cart!")
-    return redirect("customer_home")
+    return redirect(reverse("product_detail", kwargs={"product_name": product_name}) + "?added_to_cart=true")
 
 def remove_from_cart(request, product_name):
     cart = request.session.get("cart", {})
@@ -413,16 +390,23 @@ def remove_from_cart(request, product_name):
 def cart_view(request):
     data = load_data()
     cart = request.session.get("cart", {})
+    if not isinstance(cart, dict):
+        cart = {}
+        request.session["cart"] = cart
+        request.session.modified = True
+
     all_products = get_all_products()
     cart_products = []
     for product_name, quantity in cart.items():
         for p in all_products:
             if p["name"] == product_name:
+                available_quantity = max(0, p.get("quantity", 1) - quantity)
                 cart_products.append({
                     "name": p["name"],
                     "price": p["price"],
                     "image_path": p["image_path"],
-                    "quantity": quantity
+                    "quantity": quantity,
+                    "available_quantity": available_quantity
                 })
     request.session["cart_seen"] = True
     return render(request, "customer/cart.html", {
@@ -439,12 +423,14 @@ def cart_table_view(request):
             if p["name"] == product_name:
                 total_price = quantity * float(p["price"])
                 grand_total += total_price
+                available_quantity = max(0, p.get("quantity", 1) - quantity)
                 cart_products.append({
                     "name": p["name"],
                     "price": p["price"],
                     "image_path": p["image_path"],
                     "quantity": quantity,
-                    "total_price": total_price
+                    "total_price": total_price,
+                    "available_quantity": available_quantity
                 })
     return render(request, "customer/cart_table.html", {
         "products": cart_products,
@@ -453,12 +439,42 @@ def cart_table_view(request):
 
 def increment_cart_item(request, product_name):
     cart = request.session.get("cart", {})
-    if product_name in cart:
-        cart[product_name] += 1
+    if not isinstance(cart, dict):
+        cart = {}
+        request.session["cart"] = cart
+        request.session.modified = True
+
+    data = load_data()
+    product_quantity = 0
+    product_found = False
+
+    for email, user_data in data.get("user_data", {}).items():
+        subcategories = user_data.get("subcategories", {})
+        for category, products in subcategories.items():
+            for product in products:
+                if product["name"] == product_name:
+                    product_quantity = product.get("quantity", 1)
+                    product_found = True
+                    break
+            if product_found:
+                break
+        if product_found:
+            break
+
+    if not product_found:
+        messages.error(request, f"Product {product_name} not found.")
+        return redirect("customer_cart")
+
+    current_in_cart = cart.get(product_name, 0)
+    if current_in_cart >= product_quantity:
+        messages.warning(request, f"Sorry, only {product_quantity} units of {product_name} are available.")
+        return redirect("customer_cart")
+
+    cart[product_name] = current_in_cart + 1
     request.session["cart"] = cart
     request.session["new_product_added"] = None
     request.session.modified = True
-    return HttpResponseRedirect(reverse("customer_cart"))
+    return redirect("customer_cart")
 
 def decrement_cart_item(request, product_name):
     cart = request.session.get("cart", {})
@@ -474,7 +490,7 @@ def decrement_cart_item(request, product_name):
     request.session["cart"] = cart
     request.session["new_product_added"] = None
     request.session.modified = True
-    return HttpResponseRedirect(reverse("customer_cart"))
+    return redirect("customer_cart")
 
 def checkout_address(request):
     cart = request.session.get("cart", {})
@@ -540,12 +556,14 @@ def checkout_payment(request):
                 price = float(p["price"])
                 item_total = price * quantity
                 total += item_total
+                available_quantity = max(0, p.get("quantity", 1) - quantity)
                 cart_products.append({
                     "name": p["name"],
                     "price": price,
                     "quantity": quantity,
                     "total": item_total,
-                    "image_path": p.get("image_path", "")
+                    "image_path": p.get("image_path", ""),
+                    "available_quantity": available_quantity
                 })
 
     discount = 0
@@ -591,7 +609,7 @@ def checkout_payment(request):
 def place_order(request):
     if request.method == "POST":
         request.session["notified_products"] = []
-        request.session["cart"] = {}  # Changed from [] to {}
+        request.session["cart"] = {}
         messages.success(request, "Order placed successfully!")
         return redirect("customer_home")
     return redirect("checkout_payment")
@@ -600,16 +618,13 @@ def payment_success(request):
     invoice = request.session.get("invoice", {})
     address = request.session.get("address", {})
     
-    # Check if we have valid order data
     order_id = invoice.get('order_id')
     
     if not order_id:
         messages.error(request, "No order information found. Please contact support.")
         return redirect("customer_home")
     
-    # Save order to database if user is authenticated
     if request.user.is_authenticated and invoice and address:
-        # Check if order already exists to avoid duplicates
         if not CustomerOrder.objects.filter(order_id=order_id).exists():
             CustomerOrder.objects.create(
                 user=request.user,
@@ -621,15 +636,14 @@ def payment_success(request):
                 shipping_address=address
             )
     
-    # Clear cart after successful payment
-    request.session["cart"] = {}  # Changed from [] to {}
+    request.session["cart"] = {}
     request.session["notified_products"] = []
     request.session.modified = True
     
     return render(request, "customer/payment_success.html", {
         "invoice": invoice,
         "address": address,
-        "order_id": order_id  # Pass order_id to template
+        "order_id": order_id
     })
 
 def download_invoice_pdf(request):
@@ -717,7 +731,6 @@ def track_order(request, order_id=None):
             "timeline": timeline,
         })
 
-    # fallback → show order history list
     orders = CustomerOrder.objects.filter(user=request.user).order_by('-order_date')
     return render(request, "customer/track_order.html", {
         "show_tracking": False,
@@ -737,16 +750,13 @@ def order_history(request):
     
     orders = CustomerOrder.objects.filter(user=request.user).order_by('-order_date')
     
-    # Add pagination (10 orders per page)
     paginator = Paginator(orders, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    # Get product images for each order
     all_products = get_all_products()
     for order in page_obj:
         for product in order.products:
-            # Find the product image
             for p in all_products:
                 if p["name"] == product["name"]:
                     product["image_path"] = p.get("image_path", "/media/products/default.png")
@@ -763,7 +773,6 @@ def notifications_view(request):
     if not request.user.is_authenticated:
         return JsonResponse({'count': 0, 'notifications': []})
     
-    # Get unread notifications
     unread_notifications = NewProductNotification.objects.filter(
         is_active=True
     ).exclude(
@@ -772,10 +781,8 @@ def notifications_view(request):
     
     count = unread_notifications.count()
     
-    # Prepare notification data
     notifications = []
-    for notification in unread_notifications[:5]:  # Limit to 5 most recent
-        # Find the product details
+    for notification in unread_notifications[:5]:
         product = next((p for p in get_all_products() if p.get("name") == notification.product_name), None)
         if product:
             notifications.append({
@@ -806,14 +813,11 @@ def all_notifications_view(request):
     if not request.user.is_authenticated:
         return redirect('customer_login')
     
-    # Get all notifications (both read and unread)
     all_notifications = NewProductNotification.objects.filter(is_active=True)
     
-    # Mark all as read for this user
     for notification in all_notifications.exclude(notified_users=request.user):
         notification.notified_users.add(request.user)
     
-    # Prepare notification data with product details
     notifications_with_details = []
     for notification in all_notifications:
         product = next((p for p in get_all_products() if p.get("name") == notification.product_name), None)

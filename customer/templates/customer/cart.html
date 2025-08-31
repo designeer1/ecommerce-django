@@ -1,4 +1,6 @@
 {% extends "customer/base.html" %}
+{% load static %}
+
 {% block content %}
 
 <h2 class="mb-4 text-center"><i class="bi bi-cart3"></i> My Cart</h2>
@@ -15,8 +17,11 @@
         <div class="d-flex justify-content-center align-items-center mb-2">
           <a href="{% url 'decrement_cart_item' product.name %}" class="btn btn-sm btn-outline-danger me-2">−</a>
           <span class="fw-bold" style="color: white;">{{ product.quantity }}</span>
-
-          <a href="{% url 'increment_cart_item' product.name %}" class="btn btn-sm btn-outline-success ms-2">+</a>
+          {% if product.available_quantity <= 0 %}
+            <span class="btn btn-sm btn-outline-success ms-2 disabled">+</span>
+          {% else %}
+            <a href="{% url 'increment_cart_item' product.name %}" class="btn btn-sm btn-outline-success ms-2">+</a>
+          {% endif %}
         </div>
         <a href="{% url 'remove_from_cart' product.name %}" class="btn btn-danger btn-sm">
           <i class="bi bi-x-circle"></i> Remove
@@ -38,5 +43,110 @@
     <i class="bi bi-check2-circle"></i> Complete Cart
   </a>
 </div>
+
+<style>
+/* 🔹 HackerRank Theme Background */
+body {
+  background-color: #1e1e1e;
+  color: #f2f2f2;
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(0, 97, 153, 0.1) 0%, transparent 20%),
+    radial-gradient(circle at 90% 80%, rgba(0, 97, 153, 0.1) 0%, transparent 20%),
+    radial-gradient(circle at 50% 50%, rgba(42, 170, 138, 0.05) 0%, transparent 80%);
+}
+
+/* 🔹 Product Cards */
+.product-card {
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  background: #2a2a2a;
+  border: 1px solid #3e3e3e;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+.product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.3) !important;
+  border-color: #2a8ab8;
+}
+.card-img-top-container {
+  height: 220px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+}
+.card-img-top-container img {
+  max-height: 85%;
+  max-width: 85%;
+  object-fit: contain;
+  transition: transform 0.5s ease;
+}
+.product-card:hover .card-img-top-container img {
+  transform: scale(1.08);
+}
+
+/* 🔹 Button Styles */
+.btn-primary {
+  background: linear-gradient(45deg, #2a8ab8, #42b983);
+  border: none;
+}
+.btn-success {
+  background: linear-gradient(45deg, #42b983, #2a8ab8);
+  border: none;
+}
+.btn-outline-success {
+  border-color: #42b983;
+  color: #42b983;
+}
+.btn-outline-success:hover {
+  background-color: #42b983;
+  color: #f2f2f2;
+}
+.btn-outline-danger {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+.btn-outline-danger:hover {
+  background-color: #dc3545;
+  color: #f2f2f2;
+}
+.btn-outline-primary {
+  border-color: #2a8ab8;
+  color: #2a8ab8;
+}
+.btn-outline-primary:hover {
+  background-color: #2a8ab8;
+  color: #f2f2f2;
+}
+
+/* 🔹 Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #1e1e1e;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, #2a8ab8, #42b983);
+  border-radius: 10px;
+}
+
+/* 🔹 Responsive adjustments */
+@media (max-width: 768px) {
+  .card-img-top-container { height: 180px; }
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  // Add animation delays to product cards
+  document.querySelectorAll('.product-card').forEach((card, index) => {
+    card.style.animationDelay = `${index * 0.1}s`;
+  });
+});
+</script>
 
 {% endblock %}

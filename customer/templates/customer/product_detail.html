@@ -35,11 +35,17 @@
       <!-- Product Description -->
       <p class="text-light">{{ product.description }}</p>
 
-      <!-- Add to Cart Button -->
+      <!-- Add to Cart Button or Out of Stock -->
       <div class="d-flex gap-3 flex-wrap">
-        <a href="{% url 'add_to_cart' product.name %}" class="btn btn-success rounded-pill px-4">
-          <i class="fas fa-cart-plus me-2"></i> Add to Cart
-        </a>
+        {% if product.available_quantity <= 0 %}
+          <span class="btn btn-danger rounded-pill px-4 disabled">
+            <i class="fas fa-cart-plus me-2"></i> Out of Stock
+          </span>
+        {% else %}
+          <a href="{% url 'add_to_cart' product.name %}?added_to_cart=true" class="btn btn-success rounded-pill px-4">
+            <i class="fas fa-cart-plus me-2"></i> Add to Cart
+          </a>
+        {% endif %}
         <a href="#relatedProducts" class="btn btn-outline-light rounded-pill px-4">
           <i class="fas fa-star me-2"></i> Related Products
         </a>
@@ -87,11 +93,17 @@
             </div>
           </div>
           <div class="card-footer bg-transparent border-0 pt-0">
-            <a href="{% url 'add_to_cart' rp.name %}" class="btn btn-success w-100 rounded-pill">
-              <i class="fas fa-cart-plus me-2"></i>Add to Cart
-            </a>
+            {% if rp.available_quantity <= 0 %}
+              <span class="btn btn-danger rounded-pill w-100 disabled">
+                <i class="fas fa-cart-plus me-2"></i> Out of Stock
+              </span>
+            {% else %}
+              <a href="{% url 'add_to_cart' rp.name %}?added_to_cart=true" class="btn btn-success rounded-pill w-100">
+                <i class="fas fa-cart-plus me-2"></i> Add to Cart
+              </a>
+            {% endif %}
             <a href="{% url 'product_detail' rp.name %}" class="btn btn-outline-light w-100 rounded-pill mt-2">
-              <i class="fas fa-eye me-2"></i>View Details
+              <i class="fas fa-eye me-2"></i> View Details
             </a>
           </div>
         </div>
