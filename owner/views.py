@@ -1481,3 +1481,96 @@ def update_order_status(request, order_id):
             return JsonResponse({"success": False, "error": "Customer orders not available"})
     
     return JsonResponse({"success": False, "error": "Invalid request method"})
+
+
+# Add these imports at the top of views.py
+from django.contrib.auth.models import User
+from django.contrib import messages
+from django.db.models import Q, Count
+
+# Add these views to your views.py
+def customer_management(request):
+    """View to manage all customers"""
+    email = request.session.get("email")
+    if not email:
+        return redirect("login")
+    
+    # Get all users (customers) with their order counts
+    customers = User.objects.annotate(
+        order_count=Count('customerorder')
+    ).order_by('-date_joined')
+    
+    # Filter by search query if provided
+    search_query = request.GET.get('q', '')
+    if search_query:
+        customers = customers.filter(
+            Q(username__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query)
+        )
+    
+    # Pagination
+    paginator = Paginator(customers, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, "customer_management.html", {
+        "page_obj": page_obj,
+        "search_query": search_query
+    })
+
+def customer_orders(request, customer_id):
+    """View all orders for a specific customer"""
+    email = request.session.get("email")
+    if not email:
+        return redirect("login")
+    
+    try:
+        customer = User.objects.get(id=customer_id)
+        
+        # Try to import CustomerOrder (handle case where customer app might not be available)
+        try:
+            from customer.models import CustomerOrder
+            orders = CustomerOrder.objects.filter(user=customer).order_by('-order_date')
+            
+            # Filter by status if requested
+            status_filter = request.GET.get('status', '')
+            if status_filter:
+                orders = orders.filter(status=status_filter)
+            
+            # Search functionality
+            search_query = request.GET.get('q', '')
+            if search_query:
+                orders = orders.filter(
+                    Q(order_id__icontains=search_query)
+                )
+            
+            # Pagination
+            paginator = Paginator(orders, 10)
+            page_number = request.GET.get('page')
+            page_obj = paginator.get_page(page_number)
+            
+            return render(request, "customer_orders.html", {
+                "customer": customer,
+                "page_obj": page_obj,
+                "status_filter": status_filter,
+                "search_query": search_query,
+                "status_choices": CustomerOrder.STATUS_CHOICES if hasattr(CustomerOrder, 'STATUS_CHOICES') else []
+            })
+            
+        except ImportError:
+            # Customer orders not available
+            return render(request, "customer_orders.html", {
+                "customer": customer,
+                "error": "Customer orders not available. Please ensure the customer app is installed."
+            })
+        
+    except User.DoesNotExist:
+        messages.error(request, "Customer not found")
+        return redirect("customer_management")
+
+def get_customer_count(request):
+    """Get total customer count for AJAX requests"""
+    count = User.objects.count()
+    return JsonResponse({"count": count})

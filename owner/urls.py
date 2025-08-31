@@ -50,4 +50,8 @@ urlpatterns = [
     path('orders/', views.manage_orders, name='manage_orders'),
     path('orders/<str:order_id>/', views.order_detail, name='order_detail'),
     path('orders/<str:order_id>/update-status/', views.update_order_status, name='update_order_status'),
+
+    path('customer-management/', views.customer_management, name='customer_management'),
+    path('customer-orders/<int:customer_id>/', views.customer_orders, name='customer_orders'),
+    path('api/customer-count/', views.get_customer_count, name='get_customer_count'),
 ]

@@ -70,5 +70,25 @@
       </div>
     </div>
   </div>
+  
+  <!-- Customer Management Card - This was missing from the row -->
+  <div class="col-md-4">
+    <div class="dashboard-card card">
+      <div class="card-body text-center p-4">
+        <div class="card-icon text-primary">
+          <i class="bi bi-people-fill"></i>
+        </div>
+        <h3 class="card-title">Customers</h3>
+        <p class="card-text">Manage all customer accounts and view their order history.</p>
+        <div class="d-flex justify-content-between mb-3">
+          <span class="fw-bold">Total Customers:</span>
+          <span class="badge bg-primary rounded-pill" id="customerCount">0</span>
+        </div>
+        <a href="{% url 'customer_management' %}" class="btn btn-primary nav-btn">
+          <i class="bi bi-arrow-right me-2"></i> Manage Customers
+        </a>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
