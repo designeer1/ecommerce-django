@@ -45,5 +45,6 @@ path('profile/', views.profile_view, name='profile'),
      path('notifications/', views.notifications_view, name='customer_notifications'),
     path('notifications/mark-read/<int:notification_id>/', views.mark_notification_read, name='mark_notification_read'),
     path('all-notifications/', views.all_notifications_view, name='all_notifications'),
+    
 
 ]

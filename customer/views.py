@@ -806,3 +806,4 @@ def all_notifications_view(request):
     return render(request, 'customer/all_notifications.html', {
         'notifications': notifications_with_details
     })
+
