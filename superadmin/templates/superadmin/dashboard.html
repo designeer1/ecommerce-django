@@ -1,209 +1,540 @@
-{% extends 'superadmin/base.html' %} 
+{% extends 'superadmin/base.html' %}
+{% load static %}
 {% block content %}
 
-<div class="dashboard-header">
-  <h1>Admin Dashboard</h1>
-  <p>Manage all owners and their products</p>
-</div>
+<div class="dashboard-container">
+  <!-- Header Section -->
+  <div class="dashboard-header mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+      <div>
+        <h1 class="display-5 fw-bold text-gradient mb-1">Admin Dashboard</h1>
+        <p class="text-muted mb-0">Manage all owners and their products efficiently</p>
+      </div>
+      <div class="d-flex align-items-center">
+        <div class="date-display bg-light p-2 rounded me-3">
+          <i class="bi bi-calendar-check me-2"></i>
+          <span id="current-date">{{ current_date }}</span>
+        </div>
+        <div class="notification-bell position-relative">
+          <i class="bi bi-bell fs-5"></i>
+          <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+            3
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
 
-<!-- Statistics Cards -->
-<div class="row g-4 mb-4">
-  <div class="col-md-4">
-    <div class="card dashboard-card">
-      <div class="card-body text-center p-4">
-        <div class="card-icon text-primary">
-          <i class="bi bi-people-fill"></i>
+  <!-- Owner Filter Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <h6 class="mb-0">Filter by Owner</h6>
+            <div class="d-flex mt-2 mt-md-0">
+              <select class="form-select form-select-sm me-2" id="ownerFilter" style="width: 250px;">
+                <option value="all" selected>All Owners</option>
+                {% for owner in owners %}
+                <option value="{{ owner.email }}">{{ owner.username }}</option>
+                {% endfor %}
+              </select>
+              <button class="btn btn-sm btn-primary" id="applyFilter">
+                <i class="bi bi-filter me-1"></i> Apply Filter
+              </button>
+            </div>
+          </div>
         </div>
-        <h3 class="card-title">Total Owners</h3>
-        <p class="display-4 fw-bold text-primary mb-0" id="totalOwners">{{ total_owners }}</p>
-        <p class="card-text">Registered store owners</p>
       </div>
     </div>
   </div>
-  
-  <div class="col-md-4">
-    <div class="card dashboard-card">
-      <div class="card-body text-center p-4">
-        <div class="card-icon text-success">
-          <i class="bi bi-box-seam"></i>
-        </div>
-        <h3 class="card-title">Total Products</h3>
-        <p class="display-4 fw-bold text-success mb-0" id="totalProducts">{{ total_products }}</p>
-        <p class="card-text">Across all stores</p>
-      </div>
-    </div>
-  </div>
-  
-  <div class="col-md-4">
-    <div class="card dashboard-card">
-      <div class="card-body text-center p-4">
-        <div class="card-icon text-info">
-          <i class="bi bi-currency-rupee"></i>
-        </div>
-        <h3 class="card-title">Total Inventory Value</h3>
-        <p class="display-4 fw-bold text-info mb-0" id="totalInventory">
-          ₹{{ total_inventory_value|floatformat:2 }}
-        </p>
-        <p class="card-text">Combined value</p>
-      </div>
-    </div>
-  </div>
-</div>
 
-<!-- Owners List -->
-<div class="card">
-  <div class="card-header">
-    <h5 class="card-title mb-0">
-      <i class="bi bi-list-check me-2"></i>Store Owners
-    </h5>
+  <!-- Statistics Cards -->
+  <div class="row g-4 mb-4">
+    <div class="col-xl-3 col-md-6">
+      <div class="card stat-card border-0 shadow-sm stat-card-1">
+        <div class="card-body p-4">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h3 class="card-title text-secondary fs-6 text-uppercase">Total Owners</h3>
+              <p class="display-5 fw-bold text-primary mb-0" id="totalOwners">{{ total_owners }}</p>
+              <p class="card-text text-muted small">Registered store owners</p>
+            </div>
+            <div class="card-icon-container bg-primary bg-opacity-10 p-3 rounded-circle">
+              <i class="bi bi-people-fill text-primary fs-2"></i>
+            </div>
+          </div>
+          <div class="progress mt-3" style="height: 5px;">
+            <div class="progress-bar bg-primary" role="progressbar" style="width: 75%" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6">
+      <div class="card stat-card border-0 shadow-sm stat-card-2">
+        <div class="card-body p-4">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h3 class="card-title text-secondary fs-6 text-uppercase">Total Products</h3>
+              <p class="display-5 fw-bold text-success mb-0" id="totalProducts">{{ total_products }}</p>
+              <p class="card-text text-muted small">Across all stores</p>
+            </div>
+            <div class="card-icon-container bg-success bg-opacity-10 p-3 rounded-circle">
+              <i class="bi bi-box-seam text-success fs-2"></i>
+            </div>
+          </div>
+          <div class="progress mt-3" style="height: 5px;">
+            <div class="progress-bar bg-success" role="progressbar" style="width: 65%" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6">
+      <div class="card stat-card border-0 shadow-sm stat-card-3">
+        <div class="card-body p-4">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h3 class="card-title text-secondary fs-6 text-uppercase">Inventory Value</h3>
+              <p class="display-5 fw-bold text-info mb-0" id="totalInventory">
+                ₹{{ total_inventory_value|floatformat:2 }}
+              </p>
+              <p class="card-text text-muted small">Combined value</p>
+            </div>
+            <div class="card-icon-container bg-info bg-opacity-10 p-3 rounded-circle">
+              <i class="bi bi-currency-rupee text-info fs-2"></i>
+            </div>
+          </div>
+          <div class="progress mt-3" style="height: 5px;">
+            <div class="progress-bar bg-info" role="progressbar" style="width: 85%" aria-valuenow="85" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+      <div class="card stat-card border-0 shadow-sm stat-card-4">
+        <div class="card-body p-4">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h3 class="card-title text-secondary fs-6 text-uppercase">Avg. Products/Owner</h3>
+              <p class="display-5 fw-bold text-warning mb-0" id="avgProducts">
+                {% if total_owners > 0 %}{{ total_products|floatformat:0 }}{% else %}0{% endif %}
+              </p>
+              <p class="card-text text-muted small">Per store owner</p>
+            </div>
+            <div class="card-icon-container bg-warning bg-opacity-10 p-3 rounded-circle">
+              <i class="bi bi-bar-chart text-warning fs-2"></i>
+            </div>
+          </div>
+          <div class="progress mt-3" style="height: 5px;">
+            <div class="progress-bar bg-warning" role="progressbar" style="width: 60%" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="card-body">
-    <div class="table-responsive">
-      <table class="table table-hover">
-        <thead>
-          <tr>
-            <th>Owner</th>
-            <th>Email</th>
-            <th>Products</th>
-            <th>Inventory Value</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for owner in owners %}
-          <tr>
-            <td>
-              <div class="d-flex align-items-center">
-                <div class="avatar-placeholder me-3">
-                  <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" 
-                       style="width: 40px; height: 40px;">
-                    <strong>{{ owner.username|first|upper }}</strong>
+
+  <!-- Analytics Section -->
+  <div class="row mb-4">
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white py-3">
+          <h6 class="mb-0"><i class="bi bi-pie-chart me-2 text-primary"></i>Inventory Distribution by Owner</h6>
+        </div>
+        <div class="card-body">
+          <canvas id="inventoryDistributionChart" height="250"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white py-3">
+          <h6 class="mb-0"><i class="bi bi-bar-chart me-2 text-success"></i>Top Owners by Product Count</h6>
+        </div>
+        <div class="card-body">
+          <canvas id="topOwnersChart" height="250"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Owner Performance Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3">
+          <h6 class="mb-0"><i class="bi bi-speedometer2 me-2 text-info"></i>Owner Performance Metrics</h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Owner</th>
+                  <th>Products</th>
+                  <th>Inventory Value</th>
+                  <th>Avg. Product Price</th>
+                  <th>Categories</th>
+                  <th>Performance Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for owner in owners %}
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="avatar-placeholder me-3">
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" 
+                             style="width: 35px; height: 35px;">
+                          <strong>{{ owner.username|first|upper }}</strong>
+                        </div>
+                      </div>
+                      <div>
+                        <strong>{{ owner.username }}</strong>
+                        <br>
+                        <small class="text-muted">{{ owner.email }}</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge bg-info bg-opacity-10 text-info rounded-pill px-3 py-2">
+                      {{ owner.product_count }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2">
+                      ₹{{ owner.total_value|floatformat:2 }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-2">
+                      ₹{% if owner.product_count > 0 %}{{ owner.total_value|floatformat:2 }}{% else %}0.00{% endif %}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3 py-2">
+                      {{ owner.categories_count|default:"N/A" }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="progress me-2" style="height: 6px; width: 80px;">
+                        <div class="progress-bar bg-{% if owner.performance_score > 75 %}success{% elif owner.performance_score > 50 %}warning{% else %}danger{% endif %}" 
+                             role="progressbar" style="width: {{ owner.performance_score|default:50 }}%" 
+                             aria-valuenow="{{ owner.performance_score|default:50 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                      </div>
+                      <small>{{ owner.performance_score|default:50 }}%</small>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Owners List -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3 border-0">
+      <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <h5 class="card-title mb-0">
+          <i class="bi bi-people-fill me-2 text-primary"></i>Store Owners
+        </h5>
+        <div class="d-flex mt-2 mt-md-0">
+          <div class="input-group input-group-sm me-2" style="width: 250px;">
+            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control border-start-0" placeholder="Search owners..." id="searchInput">
+          </div>
+          <div class="dropdown">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-filter"></i> Filters
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="filterDropdown">
+              <li><a class="dropdown-item" href="#">Active</a></li>
+              <li><a class="dropdown-item" href="#">Inactive</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="#">Most Products</a></li>
+              <li><a class="dropdown-item" href="#">Highest Value</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0" id="ownersTable">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-4">Owner</th>
+              <th>Email</th>
+              <th>Products</th>
+              <th>Inventory Value</th>
+              <th>Status</th>
+              <th class="text-end pe-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for owner in owners %}
+            <tr class="owner-row">
+              <td class="ps-4">
+                <div class="d-flex align-items-center">
+                  <div class="avatar-placeholder me-3">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" 
+                         style="width: 40px; height: 40px;">
+                      <strong>{{ owner.username|first|upper }}</strong>
+                    </div>
+                  </div>
+                  <div>
+                    <strong>{{ owner.username }}</strong>
+                    {% if owner.django_user %}
+                    <br>
+                    <small class="text-muted">Registered User</small>
+                    {% endif %}
                   </div>
                 </div>
-                <div>
-                  <strong>{{ owner.username }}</strong>
-                  {% if owner.django_user %}
-                  <br>
-                  <small class="text-muted">Registered User</small>
-                  {% endif %}
-                </div>
-              </div>
-            </td>
-            <td>{{ owner.email }}</td>
-            <td>
-              <span class="badge bg-info rounded-pill">
-                {{ owner.product_count }} products
-              </span>
-            </td>
-            <td>
-              <span class="badge bg-success rounded-pill">
-                <i class="bi bi-currency-rupee me-1"></i>₹{{ owner.total_value|floatformat:2 }}
-              </span>
-            </td>
-            <td>
-              <span class="badge bg-success">
-                <i class="bi bi-check-circle me-1"></i>Active
-              </span>
-            </td>
-            <td>
-              <div class="btn-group" role="group">
-                <a href="{% url 'owner_detail' owner.email %}" 
-                   class="btn btn-sm btn-outline-primary">
-                  <i class="bi bi-eye"></i> View
-                </a>
-                <button type="button" class="btn btn-sm btn-outline-danger" 
-                        data-bs-toggle="modal" data-bs-target="#deleteModal{{ forloop.counter }}">
-                  <i class="bi bi-trash"></i> Delete
-                </button>
-              </div>
-            </td>
-          </tr>
-          
-          <!-- Delete Confirmation Modal -->
-          <div class="modal fade" id="deleteModal{{ forloop.counter }}" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog">
-              <div class="modal-content">
-                <div class="modal-header bg-danger text-white">
-                  <h5 class="modal-title">
-                    <i class="bi bi-exclamation-triangle me-2"></i>Confirm Deletion
-                  </h5>
-                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                  <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                    <strong>Warning:</strong> This action cannot be undone.
-                  </div>
-                  <p>Are you sure you want to delete the owner <strong>{{ owner.username }}</strong>?</p>
-                  <div class="bg-light p-3 rounded">
-                    <small class="text-muted">
-                      <i class="bi bi-info-circle me-1"></i>
-                      This will remove all associated products and data for this owner.
-                    </small>
-                  </div>
-                  <div class="mt-3 p-3 bg-light rounded">
-                    <h6 class="mb-2">Inventory Details:</h6>
-                    <ul class="mb-0">
-                      <li>{{ owner.product_count }} products</li>
-                      <li>Total value: ₹{{ owner.total_value|floatformat:2 }}</li>
-                    </ul>
-                  </div>
-                </div>
-                <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="bi bi-x-circle me-1"></i> Cancel
+              </td>
+              <td>{{ owner.email }}</td>
+              <td>
+                <span class="badge bg-info bg-opacity-10 text-info rounded-pill px-3 py-2">
+                  <i class="bi bi-box me-1"></i>{{ owner.product_count }} products
+                </span>
+              </td>
+              <td>
+                <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2">
+                  <i class="bi bi-currency-rupee me-1"></i>₹{{ owner.total_value|floatformat:2 }}
+                </span>
+              </td>
+              <td>
+                <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2">
+                  <i class="bi bi-check-circle me-1"></i>Active
+                </span>
+              </td>
+              <td class="text-end pe-4">
+                <div class="btn-group" role="group">
+                  <a href="{% url 'owner_detail' owner.email %}" 
+                     class="btn btn-sm btn-outline-primary rounded me-1">
+                    <i class="bi bi-eye"></i> View
+                  </a>
+                  <button type="button" class="btn btn-sm btn-outline-danger rounded" 
+                          data-bs-toggle="modal" data-bs-target="#deleteModal{{ forloop.counter }}">
+                    <i class="bi bi-trash"></i>
                   </button>
-                  <form action="{% url 'delete_owner' owner.email %}" method="POST" class="d-inline">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">
-                      <i class="bi bi-trash me-1"></i> Delete Owner
+                </div>
+              </td>
+            </tr>
+            
+            <!-- Delete Confirmation Modal -->
+            <div class="modal fade" id="deleteModal{{ forloop.counter }}" tabindex="-1" aria-hidden="true">
+              <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                  <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">
+                      <i class="bi bi-exclamation-triangle me-2"></i>Confirm Deletion
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    <div class="alert alert-warning">
+                      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                      <strong>Warning:</strong> This action cannot be undone.
+                    </div>
+                    <p>Are you sure you want to delete the owner <strong>{{ owner.username }}</strong>?</p>
+                    <div class="bg-light p-3 rounded">
+                      <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        This will remove all associated products and data for this owner.
+                      </small>
+                    </div>
+                    <div class="mt-3 p-3 bg-light rounded">
+                      <h6 class="mb-2">Inventory Details:</h6>
+                      <ul class="mb-0">
+                        <li>{{ owner.product_count }} products</li>
+                        <li>Total value: ₹{{ owner.total_value|floatformat:2 }}</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                      <i class="bi bi-x-circle me-1"></i> Cancel
                     </button>
-                  </form>
+                    <form action="{% url 'delete_owner' owner.email %}" method="POST" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i> Delete Owner
+                      </button>
+                    </form>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          {% empty %}
-          <tr>
-            <td colspan="6" class="text-center py-4">
-              <i class="bi bi-people display-4 d-block text-muted mb-2"></i>
-              <h5>No owners found</h5>
-              <p class="text-muted">No store owners have registered yet.</p>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="text-center py-5">
+                <i class="bi bi-people display-4 d-block text-muted mb-2"></i>
+                <h5>No owners found</h5>
+                <p class="text-muted">No store owners have registered yet.</p>
+                <button class="btn btn-primary mt-2">
+                  <i class="bi bi-plus-circle me-1"></i> Add First Owner
+                </button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
+    {% if owners %}
+    <div class="card-footer bg-white py-3">
+      <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+          <span class="text-muted small">Showing <strong>{{ owners|length }}</strong> owners</span>
+        </div>
+        <nav aria-label="Page navigation">
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item disabled">
+              <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+            </li>
+            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+            <li class="page-item"><a class="page-link" href="#">2</a></li>
+            <li class="page-item"><a class="page-link" href="#">3</a></li>
+            <li class="page-item">
+              <a class="page-link" href="#">Next</a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+    {% endif %}
   </div>
 </div>
 
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
-.avatar-placeholder {
-  min-width: 40px;
+:root {
+  --primary-gradient: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
+  --success-gradient: linear-gradient(135deg, #198754 0%, #0f9d58 100%);
+  --info-gradient: linear-gradient(135deg, #0dcaf0 0%, #0d6efd 100%);
+  --warning-gradient: linear-gradient(135deg, #ffc107 0%, #ff6b00 100%);
 }
 
-.avatar-placeholder div {
-  font-size: 16px;
+body {
+  background-color: #f8f9fa;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.btn-group .btn {
-  border-radius: 0.375rem;
+.dashboard-container {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 1rem;
 }
 
-.btn-group .btn:first-child {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
+.dashboard-header {
+  padding: 1rem 0;
 }
 
-.btn-group .btn:last-child {
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-  border-left: none;
+.text-gradient {
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-/* Modal styling */
+.stat-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-left: 4px solid transparent;
+  overflow: hidden;
+  position: relative;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--primary-gradient);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.stat-card-1::before {
+  background: var(--primary-gradient);
+}
+
+.stat-card-2::before {
+  background: var(--success-gradient);
+}
+
+.stat-card-3::before {
+  background: var(--info-gradient);
+}
+
+.stat-card-4::before {
+  background: var(--warning-gradient);
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+.stat-card:hover::before {
+  opacity: 1;
+}
+
+.card-icon-container {
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover .card-icon-container {
+  transform: scale(1.1);
+}
+
+.owner-row {
+  transition: all 0.3s ease;
+}
+
+.owner-row:hover {
+  background-color: #f8f9fa;
+  transform: translateX(5px);
+}
+
+.date-display {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.table th {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+  color: #6c757d;
+  border-top: none;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.badge {
+  font-weight: 500;
+}
+
+.progress {
+  background-color: #f0f0f0;
+  border-radius: 10px;
+}
+
+.progress-bar {
+  border-radius: 10px;
+}
+
 .modal-content {
   border-radius: 0.5rem;
   border: none;
@@ -214,33 +545,231 @@
   border-radius: 0.5rem 0.5rem 0 0;
 }
 
-/* Table styling */
-.table th {
-  font-weight: 600;
-  border-top: none;
+.btn-group .btn {
+  border-radius: 0.375rem;
 }
 
-.table td {
-  vertical-align: middle;
+.action-btn {
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  padding: 10px 15px;
+}
+
+.action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.notification-bell {
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 50%;
+  transition: background-color 0.3s ease;
+}
+
+.notification-bell:hover {
+  background-color: #f8f9fa;
+}
+
+/* Animation for stats */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.display-5 {
+  animation: countUp 0.8s ease forwards;
+}
+
+/* Search highlight */
+.highlight {
+  background-color: rgba(255, 193, 7, 0.2);
+  border-radius: 4px;
+  padding: 2px 0;
+}
+
+/* Fade in animation for page load */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+.stat-card:nth-child(1) { animation-delay: 0.1s; }
+.stat-card:nth-child(2) { animation-delay: 0.2s; }
+.stat-card:nth-child(3) { animation-delay: 0.3s; }
+.stat-card:nth-child(4) { animation-delay: 0.4s; }
+
+/* Custom scrollbar for table */
+.table-responsive::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+  background: #c5c5c5;
+  border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+  background: #a5a5a5;
 }
 </style>
 
 <script>
-// Update stats dynamically
 document.addEventListener('DOMContentLoaded', function() {
+  // Set current date
+  const now = new Date();
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  document.getElementById('current-date').textContent = now.toLocaleDateString('en-US', options);
+  
+  // Prepare data for charts
+  const ownerNames = [
+    {% for owner in owners|slice:":5" %}
+      "{{ owner.username }}",
+    {% endfor %}
+  ];
+  
+  const ownerProductCounts = [
+    {% for owner in owners|slice:":5" %}
+      {{ owner.product_count }},
+    {% endfor %}
+  ];
+  
+  const ownerInventoryValues = [
+    {% for owner in owners|slice:":5" %}
+      {{ owner.total_value }},
+    {% endfor %}
+  ];
+  
+  // Inventory Distribution Chart
+  const inventoryCtx = document.getElementById('inventoryDistributionChart').getContext('2d');
+  const inventoryChart = new Chart(inventoryCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ownerNames,
+      datasets: [{
+        data: ownerInventoryValues,
+        backgroundColor: [
+          'rgba(13, 110, 253, 0.8)',
+          'rgba(25, 135, 84, 0.8)',
+          'rgba(13, 202, 240, 0.8)',
+          'rgba(255, 193, 7, 0.8)',
+          'rgba(108, 117, 125, 0.8)'
+        ],
+        borderColor: [
+          'rgba(13, 110, 253, 1)',
+          'rgba(25, 135, 84, 1)',
+          'rgba(13, 202, 240, 1)',
+          'rgba(255, 193, 7, 1)',
+          'rgba(108, 117, 125, 1)'
+        ],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+        },
+        title: {
+          display: true,
+          text: 'Inventory Value Distribution'
+        }
+      }
+    }
+  });
+  
+  // Top Owners Chart
+  const topOwnersCtx = document.getElementById('topOwnersChart').getContext('2d');
+  const topOwnersChart = new Chart(topOwnersCtx, {
+    type: 'bar',
+    data: {
+      labels: ownerNames,
+      datasets: [{
+        label: 'Product Count',
+        data: ownerProductCounts,
+        backgroundColor: 'rgba(13, 110, 253, 0.7)',
+        borderColor: 'rgba(13, 110, 253, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          display: false
+        },
+        title: {
+          display: true,
+          text: 'Products per Owner'
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Number of Products'
+          }
+        }
+      }
+    }
+  });
+  
+  // Search functionality
+  const searchInput = document.getElementById('searchInput');
+  const ownerRows = document.querySelectorAll('.owner-row');
+  
+  if (searchInput) {
+    searchInput.addEventListener('keyup', function() {
+      const searchText = this.value.toLowerCase();
+      
+      ownerRows.forEach(row => {
+        const rowText = row.textContent.toLowerCase();
+        if (rowText.includes(searchText)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    });
+  }
+  
+  // Update stats dynamically with animation
   const totalOwnersElement = document.getElementById('totalOwners');
   const totalProductsElement = document.getElementById('totalProducts');
   
   if (totalOwnersElement && totalProductsElement) {
-    fetch('{% url "get_owner_stats" %}')
-      .then(response => response.json())
-      .then(data => {
-        totalOwnersElement.textContent = data.total_owners;
-        totalProductsElement.textContent = data.total_products;
-      })
-      .catch(error => {
-        console.error('Error fetching owner stats:', error);
-      });
+    // Simulate loading animation
+    totalOwnersElement.style.opacity = '0';
+    totalProductsElement.style.opacity = '0';
+    
+    setTimeout(() => {
+      fetch('{% url "get_owner_stats" %}')
+        .then(response => response.json())
+        .then(data => {
+          totalOwnersElement.textContent = data.total_owners;
+          totalProductsElement.textContent = data.total_products;
+          
+          // Animate the numbers
+          totalOwnersElement.style.opacity = '1';
+          totalProductsElement.style.opacity = '1';
+        })
+        .catch(error => {
+          console.error('Error fetching owner stats:', error);
+          totalOwnersElement.style.opacity = '1';
+          totalProductsElement.style.opacity = '1';
+        });
+    }, 500);
   }
   
   // Add confirmation for delete actions
@@ -253,6 +782,44 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   });
+  
+  // Add hover effects to cards
+  const cards = document.querySelectorAll('.card');
+  cards.forEach(card => {
+    card.addEventListener('mouseenter', function() {
+      this.style.boxShadow = '0 10px 20px rgba(0, 0, 0, 0.1)';
+    });
+    
+    card.addEventListener('mouseleave', function() {
+      this.style.boxShadow = '0 0.5rem 1rem rgba(0, 0, 0, 0.15)';
+    });
+  });
+  
+  // Owner filter functionality
+  const ownerFilter = document.getElementById('ownerFilter');
+  const applyFilter = document.getElementById('applyFilter');
+  
+  if (applyFilter) {
+    applyFilter.addEventListener('click', function() {
+      const selectedOwner = ownerFilter.value;
+      if (selectedOwner === 'all') {
+        // Show all owners
+        ownerRows.forEach(row => {
+          row.style.display = '';
+        });
+      } else {
+        // Filter by selected owner
+        ownerRows.forEach(row => {
+          const ownerEmail = row.querySelector('td:nth-child(2)').textContent.trim();
+          if (ownerEmail === selectedOwner) {
+            row.style.display = '';
+          } else {
+            row.style.display = 'none';
+          }
+        });
+      }
+    });
+  }
 });
 </script>
 

@@ -137,90 +137,406 @@
   </div>
 </div>
 
-<!-- Products Section -->
-<div class="card border-0 shadow-premium">
-  <div class="card-header premium-card-header">
-    <div class="d-flex justify-content-between align-items-center">
-      <div>
-        <h4 class="mb-1 premium-title">
-          <i class="bi bi-box-seam me-2"></i>Product Catalog
-        </h4>
-        <p class="text-muted mb-0">Total inventory value: ₹{{ total_inventory_value|floatformat:2 }}</p>
+<!-- Products Section - Dark Theme -->
+<div class="dark-theme-container">
+  <div class="card border-0 dark-theme-card">
+    <div class="card-header dark-theme-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h4 class="mb-1 text-white">
+            <i class="bi bi-box-seam me-2"></i>Product Catalog
+          </h4>
+          <p class="text-light mb-0">Total inventory value: ₹{{ total_inventory_value|floatformat:2 }}</p>
+        </div>
+        <span class="dark-theme-badge">
+          {{ product_count }} Items
+        </span>
       </div>
-      <span class="premium-badge-large">
-        {{ product_count }} Items
-      </span>
     </div>
-  </div>
-  
-  <div class="card-body p-4">
-    {% if products %}
-    <div class="row g-4">
-      {% for product in products %}
-      <div class="col-md-6 col-lg-4">
-        <div class="card product-card h-100 border-0 shadow-premium-hover">
-          <div class="position-relative overflow-hidden">
-            <img src="{% if product.image %}{{ product.image }}{% elif product.image_path %}{{ product.image_path }}{% else %}/media/products/default.png{% endif %}" 
-                 class="card-img-top product-image" 
-                 alt="{{ product.name }}"
-                 onerror="this.src='/media/products/default.png'">
-            <span class="position-absolute top-0 end-0 m-2 premium-product-badge {% if product.type == 'subcategory' %}premium-badge-info{% else %}premium-badge-warning{% endif %}">
-              {{ product.type|title }}
-            </span>
-            <div class="premium-image-overlay">
-              <span class="premium-price-tag">₹{{ product.price }}</span>
-            </div>
-          </div>
-          
-          <div class="card-body">
-            <h6 class="card-title fw-bold text-dark mb-2 product-title">{{ product.name }}</h6>
-            
-            <div class="d-flex align-items-center mb-2 flex-wrap">
-              <span class="premium-category-badge me-2 mb-1">
-                <i class="bi bi-tag me-1"></i>{{ product.category }}
-              </span>
-              <span class="premium-category-badge mb-1">
-                <i class="bi bi-diagram-3 me-1"></i>{{ product.subcategory }}
-              </span>
-            </div>
-            
-            <p class="card-text text-muted small mb-3 line-clamp-2">
-              {{ product.description|default:"No description available" }}
-            </p>
-            
-            <div class="premium-product-footer">
-              <div class="premium-rating">
-                <i class="bi bi-star-fill text-warning"></i>
-                <i class="bi bi-star-fill text-warning"></i>
-                <i class="bi bi-star-fill text-warning"></i>
-                <i class="bi bi-star-fill text-warning"></i>
-                <i class="bi bi-star-half text-warning"></i>
-                <small class="text-muted ms-1">4.5</small>
+    
+    <div class="card-body p-4">
+      {% if products %}
+      <div class="row g-4">
+        {% for product in products %}
+        <div class="col-xl-3 col-lg-4 col-md-6">
+          <div class="dark-product-card">
+            <div class="dark-product-image-container">
+              <img src="{% if product.image %}{{ product.image }}{% elif product.image_path %}{{ product.image_path }}{% else %}/media/products/default.png{% endif %}" 
+                   class="dark-product-image" 
+                   alt="{{ product.name }}"
+                   onerror="this.src='/media/products/default.png'">
+              <div class="dark-product-overlay">
+                <div class="dark-product-actions">
+                  <button class="dark-action-btn" data-bs-toggle="tooltip" title="Quick View">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  <button class="dark-action-btn" data-bs-toggle="tooltip" title="Edit Product">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button class="dark-action-btn" data-bs-toggle="tooltip" title="Add to Favorites">
+                    <i class="bi bi-heart"></i>
+                  </button>
+                </div>
+                <span class="dark-product-price">₹{{ product.price }}</span>
               </div>
-              <div class="premium-value-indicator">
-                <i class="bi bi-currency-rupee"></i>
-                <span>{{ product.price }}</span>
+              <span class="dark-product-badge {% if product.type == 'subcategory' %}bg-info{% else %}bg-warning{% endif %}">
+                {{ product.type|title }}
+              </span>
+            </div>
+            
+            <div class="dark-product-content">
+              <h6 class="dark-product-title">{{ product.name }}</h6>
+              
+              <div class="dark-product-categories">
+                <span class="dark-category-tag">
+                  <i class="bi bi-tag me-1"></i>{{ product.category }}
+                </span>
+                {% if product.subcategory %}
+                <span class="dark-category-tag">
+                  <i class="bi bi-diagram-3 me-1"></i>{{ product.subcategory }}
+                </span>
+                {% endif %}
+              </div>
+              
+              <p class="dark-product-description">
+                {{ product.description|default:"No description available"|truncatewords:15 }}
+              </p>
+              
+              <div class="dark-product-footer">
+                <div class="dark-product-rating">
+                  <div class="dark-stars">
+                    <i class="bi bi-star-fill"></i>
+                    <i class="bi bi-star-fill"></i>
+                    <i class="bi bi-star-fill"></i>
+                    <i class="bi bi-star-fill"></i>
+                    <i class="bi bi-star-half"></i>
+                  </div>
+                  <small class="text-muted">4.5</small>
+                </div>
+                
+                <div class="dark-status-indicator"></div>
               </div>
             </div>
           </div>
         </div>
+        {% endfor %}
       </div>
-      {% endfor %}
+      {% else %}
+      <div class="text-center py-5 dark-empty-state">
+        <div class="mb-4">
+          <i class="bi bi-inbox display-1 text-light opacity-25"></i>
+        </div>
+        <h4 class="text-light mb-3">No Products Found</h4>
+        <p class="text-light mb-4">This store hasn't added any products yet.</p>
+        <button class="btn btn-outline-light">
+          <i class="bi bi-plus-circle me-1"></i> Add First Product
+        </button>
+      </div>
+      {% endif %}
     </div>
-    {% else %}
-    <div class="text-center py-5 premium-empty-state">
-      <div class="mb-4">
-        <i class="bi bi-inbox display-1 text-muted opacity-25"></i>
+    
+    {% if products %}
+    <div class="card-footer dark-theme-footer">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <span class="text-muted small">Showing {{ products|length }} of {{ product_count }} products</span>
+        </div>
+        <nav aria-label="Product pagination">
+          <ul class="pagination pagination-sm mb-0 dark-pagination">
+            <li class="page-item disabled">
+              <a class="page-link" href="#" tabindex="-1">
+                <i class="bi bi-chevron-left"></i>
+              </a>
+            </li>
+            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+            <li class="page-item"><a class="page-link" href="#">2</a></li>
+            <li class="page-item"><a class="page-link" href="#">3</a></li>
+            <li class="page-item">
+              <a class="page-link" href="#">
+                <i class="bi bi-chevron-right"></i>
+              </a>
+            </li>
+          </ul>
+        </nav>
       </div>
-      <h4 class="text-muted mb-3">No Products Found</h4>
-      <p class="text-muted mb-4">This store hasn't added any products yet.</p>
     </div>
     {% endif %}
   </div>
 </div>
 
 <style>
-/* Premium Color Scheme */
+/* Dark Theme Variables */
+:root {
+  --dark-bg: #1a1d21;
+  --dark-card: #24292e;
+  --dark-card-hover: #2d333b;
+  --dark-header: #1c2128;
+  --dark-footer: #1c2128;
+  --dark-text: #e6edf3;
+  --dark-text-muted: #7d8590;
+  --dark-border: #3e4c5a;
+  --dark-primary: #6f42c1;
+  --dark-accent: #8b5cf6;
+  --dark-success: #10b981;
+  --dark-info: #0ea5e9;
+  --dark-warning: #f59e0b;
+  --dark-danger: #ef4444;
+}
+
+/* Dark Theme Container */
+.dark-theme-container {
+  background: var(--dark-bg);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.dark-theme-card {
+  background: var(--dark-card);
+  border: 1px solid var(--dark-border);
+  border-radius: 16px;
+}
+
+.dark-theme-header {
+  background: var(--dark-header);
+  border-bottom: 1px solid var(--dark-border);
+  padding: 1.25rem 1.5rem;
+}
+
+.dark-theme-footer {
+  background: var(--dark-footer);
+  border-top: 1px solid var(--dark-border);
+  padding: 1rem 1.5rem;
+}
+
+.dark-theme-badge {
+  background: linear-gradient(135deg, var(--dark-primary), var(--dark-accent));
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* Dark Product Card */
+.dark-product-card {
+  background: var(--dark-card);
+  border: 1px solid var(--dark-border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  height: 100%;
+}
+
+.dark-product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  border-color: var(--dark-primary);
+}
+
+/* Dark Product Image */
+.dark-product-image-container {
+  position: relative;
+  height: 180px;
+  overflow: hidden;
+}
+
+.dark-product-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.dark-product-card:hover .dark-product-image {
+  transform: scale(1.05);
+}
+
+.dark-product-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px;
+}
+
+.dark-product-card:hover .dark-product-overlay {
+  opacity: 1;
+}
+
+.dark-product-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dark-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dark-bg);
+  transition: all 0.2s ease;
+}
+
+.dark-action-btn:hover {
+  background: white;
+  transform: scale(1.1);
+}
+
+.dark-product-price {
+  background: linear-gradient(135deg, var(--dark-primary), var(--dark-accent));
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  align-self: flex-start;
+}
+
+.dark-product-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: white;
+}
+
+/* Dark Product Content */
+.dark-product-content {
+  padding: 16px;
+}
+
+.dark-product-title {
+  color: var(--dark-text);
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 8px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dark-product-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.dark-category-tag {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--dark-text-muted);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+}
+
+.dark-product-description {
+  color: var(--dark-text-muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Dark Product Footer */
+.dark-product-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dark-product-rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dark-stars {
+  display: flex;
+  gap: 2px;
+  color: var(--dark-warning);
+}
+
+.dark-status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dark-success);
+  position: relative;
+}
+
+.dark-status-indicator::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--dark-success);
+  opacity: 0.6;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(2);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+}
+
+/* Dark Empty State */
+.dark-empty-state {
+  opacity: 0.8;
+}
+
+/* Dark Pagination */
+.dark-pagination .page-link {
+  background: var(--dark-card);
+  border-color: var(--dark-border);
+  color: var(--dark-text);
+}
+
+.dark-pagination .page-link:hover {
+  background: var(--dark-primary);
+  border-color: var(--dark-primary);
+  color: white;
+}
+
+.dark-pagination .page-item.active .page-link {
+  background: var(--dark-primary);
+  border-color: var(--dark-primary);
+}
+
+/* Premium Color Scheme (Keep from previous) */
 :root {
   --premium-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   --premium-secondary: linear-gradient(135deg, #2a8ab8 0%, #42b983 100%);
@@ -279,17 +595,6 @@
   display: inline-block;
 }
 
-.premium-product-badge {
-  padding: 6px 12px;
-  border-radius: 15px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: white;
-}
-
-.premium-badge-info { background: var(--premium-info); }
-.premium-badge-warning { background: var(--premium-warning); }
-
 /* Premium Icons */
 .premium-icon-wrapper {
   width: 60px;
@@ -334,17 +639,6 @@
   border-radius: 20px;
 }
 
-.shadow-premium-hover {
-  box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
-  transition: all 0.3s ease;
-  border-radius: 15px;
-}
-
-.shadow-premium-hover:hover {
-  box-shadow: 0 15px 35px rgba(0,0,0,0.15) !important;
-  transform: translateY(-5px);
-}
-
 /* Premium Card Header */
 .premium-card-header {
   background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
@@ -387,65 +681,6 @@
   margin-right: 15px;
 }
 
-/* Premium Product Elements */
-.premium-image-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: linear-gradient(transparent, rgba(0,0,0,0.7));
-  padding: 10px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.product-card:hover .premium-image-overlay {
-  opacity: 1;
-}
-
-.premium-price-tag {
-  background: var(--premium-primary);
-  color: white;
-  padding: 5px 10px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-
-.premium-category-badge {
-  background: #f8f9fa;
-  padding: 4px 8px;
-  border-radius: 8px;
-  font-size: 0.75rem;
-  color: #6c757d;
-}
-
-.premium-product-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 15px;
-}
-
-.premium-rating {
-  display: flex;
-  align-items: center;
-}
-
-.premium-value-indicator {
-  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.85rem;
-}
-
-/* Premium Empty State */
-.premium-empty-state {
-  opacity: 0.7;
-}
-
 /* Premium Button */
 .btn-outline-premium {
   border: 2px solid #667eea;
@@ -473,30 +708,31 @@
   }
 }
 
-.product-card {
+.dark-product-card {
   animation: fadeInUp 0.6s ease forwards;
   opacity: 0;
 }
 
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.product-title {
-  transition: color 0.3s ease;
-}
-
-.product-card:hover .product-title {
-  color: #667eea !important;
-}
+/* Staggered animation for product cards */
+.dark-product-card:nth-child(1) { animation-delay: 0.1s; }
+.dark-product-card:nth-child(2) { animation-delay: 0.2s; }
+.dark-product-card:nth-child(3) { animation-delay: 0.3s; }
+.dark-product-card:nth-child(4) { animation-delay: 0.4s; }
+.dark-product-card:nth-child(5) { animation-delay: 0.5s; }
+.dark-product-card:nth-child(6) { animation-delay: 0.6s; }
+.dark-product-card:nth-child(7) { animation-delay: 0.7s; }
+.dark-product-card:nth-child(8) { animation-delay: 0.8s; }
 </style>
 
 <script>
-// Counter animation for statistics
+// Initialize tooltips
 document.addEventListener('DOMContentLoaded', function() {
+  // Tooltip initialization
+  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+  });
+  
   // Counter animation
   const counters = document.querySelectorAll('.premium-counter');
   const speed = 200;
@@ -514,26 +750,6 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       counter.innerText = target.toLocaleString();
     }
-  });
-  
-  // Staggered animation for product cards
-  const productCards = document.querySelectorAll('.product-card');
-  
-  productCards.forEach((card, index) => {
-    card.style.animationDelay = `${index * 0.1}s`;
-  });
-  
-  // Premium hover effects
-  const premiumCards = document.querySelectorAll('.premium-card-primary, .premium-card-info, .premium-card-success');
-  
-  premiumCards.forEach(card => {
-    card.addEventListener('mouseenter', function() {
-      this.style.transform = 'translateY(-5px)';
-    });
-    
-    card.addEventListener('mouseleave', function() {
-      this.style.transform = 'translateY(0)';
-    });
   });
   
   // Parallax effect for profile image
