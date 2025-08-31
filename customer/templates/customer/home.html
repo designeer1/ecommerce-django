@@ -93,21 +93,40 @@
   <!-- Products Grid -->
   <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4" id="productGrid">
     {% for product in products %}
-      <div class="col product-col" data-price="{{ product.price }}" data-name="{{ product.name|lower }}">
+      <div class="col product-col" data-price="{{ product.price }}" data-name="{{ product.name|lower }}" data-available-quantity="{{ product.available_quantity|default:0 }}">
         <div class="card h-100 product-card hackerrank-card">
           <div class="position-relative">
             <div class="card-img-top-container">
-              <img src="{{ product.image_path|default:'/static/images/default.png' }}" class="card-img-top" alt="{{ product.name }}">
+              <img src="{{ product.image|default:'/static/images/default.png' }}" class="card-img-top" alt="{{ product.name }}">
             </div>
             <div class="card-price-badge">₹ {{ product.price }}</div>
+            
+            <!-- Stock status badge -->
+            <div class="card-stock-badge {% if product.available_quantity <= 0 %}out-of-stock{% elif product.available_quantity <= 3 %}low-stock{% endif %}">
+              {% if product.available_quantity <= 0 %}
+                <i class="fas fa-times-circle me-1"></i>Out of Stock
+              {% elif product.available_quantity <= 3 %}
+                <i class="fas fa-exclamation-triangle me-1"></i>Only {{ product.available_quantity }} left
+              {% else %}
+                <i class="fas fa-check-circle me-1"></i>In Stock
+              {% endif %}
+            </div>
           </div>
           <div class="card-body text-center pb-0">
             <h5 class="card-title fw-bold text-truncate">{{ product.name }}</h5>
           </div>
           <div class="card-footer bg-transparent border-0 pt-0">
-            <a href="{% url 'add_to_cart' product.name %}" class="btn btn-success w-100 rounded-pill">
-              <i class="fas fa-cart-plus me-2"></i>Add to Cart
-            </a>
+            <!-- Add to Cart / Notify Me button -->
+            {% if product.available_quantity <= 0 %}
+              <button class="btn btn-secondary w-100 rounded-pill notify-btn" data-product-name="{{ product.name }}">
+                <i class="fas fa-bell me-2"></i>Notify Me
+              </button>
+            {% else %}
+              <a href="{% url 'add_to_cart' product.name %}" class="btn btn-success w-100 rounded-pill add-to-cart-btn">
+                <i class="fas fa-cart-plus me-2"></i>Add to Cart
+              </a>
+            {% endif %}
+            
             <a href="{% url 'product_detail' product.name %}" class="btn btn-outline-light w-100 rounded-pill mt-2">
               <i class="fas fa-eye me-2"></i>View Details
             </a>
@@ -318,6 +337,33 @@ body {
   font-weight: bold;
   font-size: 0.9rem;
   backdrop-filter: blur(4px);
+}
+
+/* 🔹 Stock status badge */
+.card-stock-badge {
+  position: absolute;
+  top: 50px;
+  right: 12px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  backdrop-filter: blur(4px);
+}
+
+.card-stock-badge.out-of-stock {
+  background: rgba(220, 53, 69, 0.9);
+  color: white;
+}
+
+.card-stock-badge.low-stock {
+  background: rgba(255, 193, 7, 0.9);
+  color: #000;
+}
+
+.card-stock-badge:not(.out-of-stock):not(.low-stock) {
+  background: rgba(25, 135, 84, 0.9);
+  color: white;
 }
 
 /* 🔹 Enhanced Footer Banner */
@@ -578,7 +624,7 @@ document.addEventListener("DOMContentLoaded", function() {
           const productDetailUrl = `${productDetailBaseUrl}${encodedName}/`;
           const li = document.createElement("li");
           li.innerHTML = `
-            <img src="${product.image_path || '/static/images/default.png'}" alt="${product.name}">
+            <img src="${product.image || '/static/images/default.png'}" alt="${product.name}">
             <div class="product-info">
               <p class="product-name text-truncate mb-1">${product.name}</p>
               <p class="product-price">₹ ${parseFloat(product.price).toFixed(2)}</p>
@@ -615,6 +661,66 @@ document.addEventListener("DOMContentLoaded", function() {
       alert.classList.add('show');
     }
   }
+
+  // Handle notify me button clicks
+  document.querySelectorAll('.notify-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const productName = this.dataset.productName;
+      alert(`We'll notify you when ${productName} is back in stock!`);
+      
+      // You can implement actual notification subscription here
+      // For example, send an AJAX request to save this preference
+      fetch('/customer/notify-me/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+          product_name: productName
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert('You will be notified when this product is back in stock!');
+        }
+      });
+    });
+  });
+  
+  // Function to get CSRF token
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+  
+  // Optional: Add animation when adding to cart
+  document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      // Add a small animation to show the item was added
+      const originalText = this.innerHTML;
+      this.innerHTML = '<i class="fas fa-check me-2"></i>Added!';
+      this.classList.add('btn-primary');
+      this.classList.remove('btn-success');
+      
+      setTimeout(() => {
+        this.innerHTML = originalText;
+        this.classList.remove('btn-primary');
+        this.classList.add('btn-success');
+      }, 1500);
+    });
+  });
 });
 </script>
 

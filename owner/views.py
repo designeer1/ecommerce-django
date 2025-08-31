@@ -611,7 +611,8 @@ def edit_subcategory(request, cat_name, old_subcat_name):
                     "description": description or current_subcat.get("description", ""),
                     "image": relative_path,
                     "category": new_category,
-                    "rating": current_subcat.get("rating", 0)
+                    "rating": current_subcat.get("rating", 0),
+                    "quantity": int(request.POST.get("quantity", current_subcat.get("quantity", 1))),
                 })
 
                 save_data(data)
@@ -739,7 +740,8 @@ def add_subcategory(request):
                 "description": description or "",
                 "image": relative_path,
                 "category": category,
-                "rating": 0
+                "rating": 0,
+                "quantity": int(request.POST.get("quantity", 1)),
             })
             
             # Save the updated data to JSON
@@ -789,6 +791,7 @@ def manage_products(request):
                 "name": sc.get("name", ""),
                 "price": sc.get("price", 0),
                 "image_path": sc.get("image", "/media/products/default.png"),
+                "quantity": sc.get("quantity", 1), 
                 "category": cat,
                 "subcategory": sc.get("subcategory", "No Subcategory"),
                 "description": sc.get("description", "")

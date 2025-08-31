@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect,get_object_or_404
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib import messages
@@ -10,7 +10,10 @@ import razorpay
 from django.conf import settings
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-from .models import CustomerProfile, CustomerOrder
+from .models import CustomerProfile, CustomerOrder, NewProductNotification
+from django.contrib.auth.decorators import login_required
+from .forms import ProfileUpdateForm
+from django.core.paginator import Paginator
 
 DATA_FILE = Path(__file__).resolve().parent.parent / "owner" / "data.json"
 
@@ -105,7 +108,6 @@ def get_categories_with_products():
     return result
 
 # ---------- Auth ----------
-# views.py
 def login_view(request):
     if request.method == "POST":
         username = request.POST.get("username")
@@ -120,8 +122,6 @@ def login_view(request):
             messages.error(request, "Invalid username or password")
     return render(request, "customer/login.html")
 
-# views.py - Update the register_view function
-# views.py - Update the register_view function
 def register_view(request):
     if request.method == "POST":
         # Get form data
@@ -193,13 +193,6 @@ def logout_view(request):
     logout(request)
     return redirect("customer_login")
 
-
-# views.py - Add these imports at the top
-from django.contrib.auth.decorators import login_required
-from .forms import ProfileUpdateForm
-
-# Add this view function
-# views.py
 @login_required
 def profile_settings(request):
     profile = CustomerProfile.objects.get(user=request.user)
@@ -216,9 +209,6 @@ def profile_settings(request):
     return render(request, 'customer/profile_settings.html', {
         'form': form
     })
-# views.py
-# views.py
-from django.contrib.auth.decorators import login_required
 
 @login_required
 def profile_view(request):
@@ -238,27 +228,56 @@ def profile_view(request):
 
 # ---------- Shop ----------
 def home(request):
-    all_products = get_all_products()
-    categories = get_categories_with_products()
-    cart = request.session.get("cart", [])
-    cart_count = len(cart)
-    new_product_added = request.session.get("new_product_added", None)
-    if new_product_added:
-        del request.session["new_product_added"]
+    # Load all product data
+    data = load_data()
+    all_products = []
+    
+    # Ensure cart is a dictionary
+    cart = request.session.get('cart', {})
+    if not isinstance(cart, dict):
+        cart = {}
+        request.session['cart'] = cart
         request.session.modified = True
     
+    # Collect products from all users
+    for email, user_data in data.get("user_data", {}).items():
+        subcategories = user_data.get("subcategories", {})
+        for category, products in subcategories.items():
+            for product in products:
+                # Add category info
+                product["category"] = category
+
+                # Ensure image path
+                if "image" in product and not product["image"].startswith("/media/"):
+                    product["image"] = f"/media/{product['image']}"
+                elif "image" not in product:
+                    product["image"] = "/media/products/default.png"
+
+                # Adjust available quantity based on cart
+                cart_quantity = cart.get(product["name"], 0)
+                product["available_quantity"] = max(
+                    0, product.get("quantity", 1) - cart_quantity
+                )
+
+                all_products.append(product)
+
+    # Cart count
+    cart_count = sum(cart.values()) if cart else 0
+
+    # Check for new product notification
+    new_product_added = request.session.pop('new_product_added', None)
+
     return render(request, "customer/home.html", {
         "products": all_products,
-        "categories": categories,
         "cart_count": cart_count,
-        "new_product_added": new_product_added
+        "new_product_added": new_product_added,
     })
 
 def products_by_category(request, cat_name):
     filtered_products = [p for p in get_all_products() if p.get("category") == cat_name]
     categories = get_all_categories_and_subcategories()
-    cart = request.session.get("cart", [])
-    cart_count = len(cart)
+    cart = request.session.get("cart", {})
+    cart_count = sum(cart.values()) if cart else 0
     return render(request, "customer/home.html", {
         "products": filtered_products,
         "categories": categories,
@@ -291,8 +310,8 @@ def products_by_subcategory(request, sub_name):
                         "image_path": p.get("image", "/media/products/default.png")
                     })
     categories = get_all_categories_and_subcategories()
-    cart = request.session.get("cart", [])
-    cart_count = len(cart)
+    cart = request.session.get("cart", {})
+    cart_count = sum(cart.values()) if cart else 0
     return render(request, "customer/home.html", {
         "products": all_products,
         "categories": categories,
@@ -301,23 +320,32 @@ def products_by_subcategory(request, sub_name):
     })
 
 def product_detail(request, product_name):
+    cart = request.session.get("cart", {})
+    if not isinstance(cart, dict):  # Ensure cart is a dictionary
+        cart = {}
+        request.session["cart"] = cart
+        request.session.modified = True
+
     product = next((p for p in get_all_products() if p.get("name") == product_name), None)
     if product:
+        # Calculate available quantity
+        cart_quantity = cart.get(product["name"], 0)
+        product["available_quantity"] = max(0, product.get("quantity", 1) - cart_quantity)
         product["rating"] = product.get("rating", 5)
         product["description"] = product.get(
             "description",
             f"This is a high-quality {product['name']}. Crafted with premium materials, it offers comfort, style, and durability. Perfect for daily wear or special occasions."
         )
         related_products = [
-            {**p, "rating": p.get("rating", 5)}
+            {**p, "rating": p.get("rating", 5), "available_quantity": max(0, p.get("quantity", 1) - cart.get(p["name"], 0))}
             for p in get_all_products()
             if p.get("subcategory") == product.get("subcategory") and p.get("name") != product_name
         ]
     else:
         related_products = []
+
     categories = get_all_categories_and_subcategories()
-    cart = request.session.get("cart", [])
-    cart_count = len(cart)
+    cart_count = sum(cart.values()) if cart else 0
     return render(request, "customer/product_detail.html", {
         "product": product,
         "related_products": related_products,
@@ -325,58 +353,76 @@ def product_detail(request, product_name):
         "all_products": get_all_products(),
         "cart_count": cart_count
     })
-
 # ---------- Cart ----------
 def add_to_cart(request, product_name):
-    cart = request.session.get("cart", [])
-    notified_products = request.session.get("notified_products", [])
-    
-    product_exists = False
-    for item in cart:
-        if item["name"] == product_name:
-            item["quantity"] += 1
-            product_exists = True
+    # ✅ Get the current cart (dict format: {product_name: qty})
+    cart = request.session.get('cart', {})
+
+    # ✅ Load product data
+    data = load_data()
+    product_quantity = 0
+    product_found = False
+
+    # Search for the product in all users' data
+    for email, user_data in data.get("user_data", {}).items():
+        subcategories = user_data.get("subcategories", {})
+        for category, products in subcategories.items():
+            for product in products:
+                if product["name"] == product_name:
+                    product_quantity = product.get("quantity", 1)
+                    product_found = True
+                    break
+            if product_found:
+                break
+        if product_found:
             break
-    if not product_exists:
-        cart.append({"name": product_name, "quantity": 1})
-        if product_name not in notified_products:
-            request.session["new_product_added"] = product_name
-            notified_products.append(product_name)
-            request.session["notified_products"] = notified_products
-        else:
-            request.session["new_product_added"] = None
-    else:
-        request.session["new_product_added"] = None
-    
-    request.session["cart"] = cart
-    request.session["cart_seen"] = False
+
+    # If product does not exist
+    if not product_found:
+        messages.error(request, f"Product {product_name} not found.")
+        return redirect("customer_home")
+
+    # ✅ Check current cart quantity
+    current_in_cart = cart.get(product_name, 0)
+
+    if current_in_cart >= product_quantity:
+        messages.warning(request, f"Sorry, only {product_quantity} units of {product_name} are available.")
+        return redirect("customer_home")
+
+    # ✅ Add to cart
+    cart[product_name] = current_in_cart + 1
+    request.session['cart'] = cart
+    request.session['new_product_added'] = product_name  # notification
     request.session.modified = True
+
+    messages.success(request, f"Added {product_name} to your cart!")
     return redirect("customer_home")
 
 def remove_from_cart(request, product_name):
-    cart = request.session.get("cart", [])
-    cart = [item for item in cart if item["name"] != product_name]
-    notified_products = request.session.get("notified_products", [])
-    if product_name in notified_products:
-        notified_products.remove(product_name)
-        request.session["notified_products"] = notified_products
+    cart = request.session.get("cart", {})
+    if product_name in cart:
+        del cart[product_name]
+        notified_products = request.session.get("notified_products", [])
+        if product_name in notified_products:
+            notified_products.remove(product_name)
+            request.session["notified_products"] = notified_products
     request.session["cart"] = cart
     request.session.modified = True
     return redirect("customer_cart")
 
 def cart_view(request):
     data = load_data()
-    cart = request.session.get("cart", [])
+    cart = request.session.get("cart", {})
     all_products = get_all_products()
     cart_products = []
-    for item in cart:
+    for product_name, quantity in cart.items():
         for p in all_products:
-            if p["name"] == item["name"]:
+            if p["name"] == product_name:
                 cart_products.append({
                     "name": p["name"],
                     "price": p["price"],
                     "image_path": p["image_path"],
-                    "quantity": item["quantity"]
+                    "quantity": quantity
                 })
     request.session["cart_seen"] = True
     return render(request, "customer/cart.html", {
@@ -384,20 +430,20 @@ def cart_view(request):
     })
 
 def cart_table_view(request):
-    cart = request.session.get("cart", [])
+    cart = request.session.get("cart", {})
     all_products = get_all_products()
     cart_products = []
     grand_total = 0
-    for item in cart:
+    for product_name, quantity in cart.items():
         for p in all_products:
-            if p["name"] == item["name"]:
-                total_price = item["quantity"] * float(p["price"])
+            if p["name"] == product_name:
+                total_price = quantity * float(p["price"])
                 grand_total += total_price
                 cart_products.append({
                     "name": p["name"],
                     "price": p["price"],
                     "image_path": p["image_path"],
-                    "quantity": item["quantity"],
+                    "quantity": quantity,
                     "total_price": total_price
                 })
     return render(request, "customer/cart_table.html", {
@@ -406,36 +452,32 @@ def cart_table_view(request):
     })
 
 def increment_cart_item(request, product_name):
-    cart = request.session.get("cart", [])
-    for item in cart:
-        if item["name"] == product_name:
-            item["quantity"] += 1
-            break
+    cart = request.session.get("cart", {})
+    if product_name in cart:
+        cart[product_name] += 1
     request.session["cart"] = cart
     request.session["new_product_added"] = None
     request.session.modified = True
     return HttpResponseRedirect(reverse("customer_cart"))
 
 def decrement_cart_item(request, product_name):
-    cart = request.session.get("cart", [])
-    for item in cart:
-        if item["name"] == product_name:
-            if item["quantity"] > 1:
-                item["quantity"] -= 1
-            else:
-                cart.remove(item)
-                notified_products = request.session.get("notified_products", [])
-                if product_name in notified_products:
-                    notified_products.remove(product_name)
-                    request.session["notified_products"] = notified_products
-            break
+    cart = request.session.get("cart", {})
+    if product_name in cart:
+        if cart[product_name] > 1:
+            cart[product_name] -= 1
+        else:
+            del cart[product_name]
+            notified_products = request.session.get("notified_products", [])
+            if product_name in notified_products:
+                notified_products.remove(product_name)
+                request.session["notified_products"] = notified_products
     request.session["cart"] = cart
     request.session["new_product_added"] = None
     request.session.modified = True
     return HttpResponseRedirect(reverse("customer_cart"))
 
 def checkout_address(request):
-    cart = request.session.get("cart", [])
+    cart = request.session.get("cart", {})
     if not cart:
         return redirect("customer_cart")
 
@@ -486,17 +528,16 @@ def checkout_address(request):
     })
 
 def checkout_payment(request):
-    cart = request.session.get("cart", [])
+    cart = request.session.get("cart", {})
     all_products = get_all_products()
 
     total = 0
     cart_products = []
 
-    for item in cart:
+    for product_name, quantity in cart.items():
         for p in all_products:
-            if p["name"] == item["name"]:
+            if p["name"] == product_name:
                 price = float(p["price"])
-                quantity = item["quantity"]
                 item_total = price * quantity
                 total += item_total
                 cart_products.append({
@@ -550,12 +591,11 @@ def checkout_payment(request):
 def place_order(request):
     if request.method == "POST":
         request.session["notified_products"] = []
-        request.session["cart"] = []
+        request.session["cart"] = {}  # Changed from [] to {}
         messages.success(request, "Order placed successfully!")
         return redirect("customer_home")
     return redirect("checkout_payment")
 
-# views.py - Update the payment_success function
 def payment_success(request):
     invoice = request.session.get("invoice", {})
     address = request.session.get("address", {})
@@ -582,7 +622,7 @@ def payment_success(request):
             )
     
     # Clear cart after successful payment
-    request.session["cart"] = []
+    request.session["cart"] = {}  # Changed from [] to {}
     request.session["notified_products"] = []
     request.session.modified = True
     
@@ -697,20 +737,6 @@ def order_history(request):
     
     orders = CustomerOrder.objects.filter(user=request.user).order_by('-order_date')
     
-    return render(request, "customer/order_history.html", {
-        "orders": orders
-    })
-
-# Add this import at the top
-from django.core.paginator import Paginator
-
-def order_history(request):
-    if not request.user.is_authenticated:
-        messages.error(request, "Please login to view your order history")
-        return redirect("customer_login")
-    
-    orders = CustomerOrder.objects.filter(user=request.user).order_by('-order_date')
-    
     # Add pagination (10 orders per page)
     paginator = Paginator(orders, 10)
     page_number = request.GET.get('page')
@@ -732,8 +758,6 @@ def order_history(request):
         "page_obj": page_obj,
         "orders_count": orders.count()
     })
-# customer/views.py
-from .models import NewProductNotification
 
 def notifications_view(request):
     if not request.user.is_authenticated:
@@ -778,7 +802,6 @@ def mark_notification_read(request, notification_id):
     except NewProductNotification.DoesNotExist:
         return JsonResponse({'success': False})
 
-# customer/views.py
 def all_notifications_view(request):
     if not request.user.is_authenticated:
         return redirect('customer_login')
@@ -806,4 +829,3 @@ def all_notifications_view(request):
     return render(request, 'customer/all_notifications.html', {
         'notifications': notifications_with_details
     })
-

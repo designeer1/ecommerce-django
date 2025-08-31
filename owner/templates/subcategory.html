@@ -655,11 +655,17 @@ body {
             <th>Subcategory</th>
             <th>Product Name</th>
             <th>Price</th>
+            <th>Quantity</th>
             <th>Description</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
+          <td data-label="Quantity">
+  <span class="badge {% if subcat.quantity <= 0 %}bg-danger{% elif subcat.quantity <= 5 %}bg-warning{% else %}bg-success{% endif %}">
+    {{ subcat.quantity|default:1 }}
+  </span>
+</td>
           {% for subcat in page_obj %}
             <tr 
               data-category="{{ subcat.category }}" 
@@ -776,6 +782,10 @@ body {
             <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Add Subcategory/Product</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
+          <div class="col-md-6 mb-3">
+  <label for="addQuantity" class="form-label">Quantity</label>
+  <input type="number" name="quantity" id="addQuantity" class="form-control" min="0" value="1" required>
+</div>
           <div class="modal-body">
             <div class="row">
               <div class="col-md-6 mb-3">
@@ -863,6 +873,10 @@ body {
                   <img id="currentImage" src="" class="product-img" style="width: 120px; height: 120px;">
                   <div class="form-text mt-2">Current image</div>
                 </div>
+              </div>
+              <div class="col-md-6 mb-3">
+              <label for="editQuantity" class="form-label">Quantity</label>
+              <input type="number" name="quantity" id="editQuantity" class="form-control" min="0" value="{{ subcat.quantity|default:1 }}" required>
               </div>
             </div>
           </div>

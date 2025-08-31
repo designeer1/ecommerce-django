@@ -2,6 +2,7 @@
 {% load static %}
 {% block content %}
 
+
 <!-- 🔹 Enhanced Slim Top Banner -->
 <div id="slimBanner" class="carousel slide top-banner mb-4" data-bs-ride="carousel" data-bs-interval="3000">
   <div class="carousel-inner rounded-4 shadow-lg">
@@ -37,6 +38,7 @@
   </button>
 </div>
 
+
 <!-- 🔹 Product Section -->
 <div class="container py-5">
   <!-- Header with Icon -->
@@ -49,6 +51,7 @@
       <p class="text-muted">Add, edit or remove products from your inventory</p>
     </div>
   </div>
+
 
   <!-- Search & Filter Controls -->
   <div class="card shadow-sm border-0 mb-5">
@@ -86,6 +89,7 @@
     </div>
   </div>
 
+
   <!-- Products Grid -->
   <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4" id="productGrid">
     {% for product in products %}
@@ -96,6 +100,18 @@
               <img src="{{ product.image_path }}" class="card-img-top" alt="{{ product.name }}">
             </div>
             <div class="card-price-badge">₹ {{ product.price }}</div>
+            
+            <!-- Quantity Badge Added Here -->
+            <div class="card-quantity-badge {% if product.quantity <= 0 %}out-of-stock{% elif product.quantity <= 5 %}low-stock{% endif %}">
+              {% if product.quantity <= 0 %}
+                <i class="fas fa-times-circle me-1"></i>Out of Stock
+              {% elif product.quantity <= 5 %}
+                <i class="fas fa-exclamation-triangle me-1"></i>Only {{ product.quantity }} left
+              {% else %}
+                <i class="fas fa-check-circle me-1"></i>In Stock
+              {% endif %}
+            </div>
+
             <div class="card-actions">
               <a href="{% url 'edit_product' product.name %}" class="btn btn-warning btn-sm rounded-circle me-1" data-bs-toggle="tooltip" title="Edit">
                 <i class="fas fa-edit"></i>
@@ -138,6 +154,7 @@
     {% endfor %}
   </div>
 
+
   <!-- Pagination (if needed) -->
   {% if products.has_other_pages %}
   <nav aria-label="Product pagination" class="mt-5">
@@ -153,7 +170,7 @@
           <span class="page-link">&laquo;</span>
         </li>
       {% endif %}
-      
+     
       {% for i in products.paginator.page_range %}
         {% if products.number == i %}
           <li class="page-item active"><span class="page-link">{{ i }}</span></li>
@@ -161,7 +178,7 @@
           <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
         {% endif %}
       {% endfor %}
-      
+     
       {% if products.has_next %}
         <li class="page-item">
           <a class="page-link" href="?page={{ products.next_page_number }}" aria-label="Next">
@@ -178,6 +195,7 @@
   {% endif %}
 </div>
 
+
 <!-- 🔹 Enhanced Footer Banner -->
 <div class="footer-banner">
   <div class="container">
@@ -193,9 +211,11 @@
   </div>
 </div>
 
+
 <style>
 /* 🔹 Import Font Awesome */
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
 
 /* 🔹 Enhanced Slim Top Banner */
 .top-banner {
@@ -219,6 +239,7 @@
   backdrop-filter: blur(5px);
 }
 
+
 /* 🔹 Gradient Text */
 .gradient-text {
   background: linear-gradient(45deg, #0d6efd, #6610f2);
@@ -226,6 +247,7 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
 
 /* 🔹 Enhanced Product Cards */
 .product-card {
@@ -269,6 +291,30 @@
   font-size: 0.9rem;
   backdrop-filter: blur(4px);
 }
+
+/* === Quantity Badge Styles === */
+.card-quantity-badge {
+  position: absolute;
+  top: 50px;
+  right: 12px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.card-quantity-badge.out-of-stock {
+  background: rgba(220, 53, 69, 0.9);
+  color: white;
+}
+.card-quantity-badge.low-stock {
+  background: rgba(255, 193, 7, 0.9);
+  color: #000;
+}
+.card-quantity-badge:not(.out-of-stock):not(.low-stock) {
+  background: rgba(25, 135, 84, 0.9);
+  color: white;
+}
+
 .card-actions {
   position: absolute;
   top: 12px;
@@ -290,6 +336,7 @@
   font-size: 0.8rem;
 }
 
+
 /* 🔹 Enhanced Footer Banner */
 .footer-banner {
   position: fixed;
@@ -306,6 +353,7 @@
   border-top: 1px solid rgba(255,255,255,0.2);
   backdrop-filter: blur(10px);
 }
+
 
 /* 🔹 Enhanced Search Dropdown */
 #searchDropdown {
@@ -360,6 +408,7 @@
   gap: 6px;
 }
 
+
 /* 🔹 Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
@@ -373,11 +422,13 @@
   border-radius: 10px;
 }
 
+
 /* 🔹 Highlight for filtered products */
 .product-highlight {
   background-color: rgba(13, 110, 253, 0.05) !important;
   border: 2px solid #0d6efd !important;
 }
+
 
 /* 🔹 Animation for cards */
 @keyframes fadeIn {
@@ -388,6 +439,7 @@
   animation: fadeIn 0.5s ease forwards;
   animation-delay: calc(var(--delay, 0) * 0.1s);
 }
+
 
 /* 🔹 Responsive adjustments */
 @media (max-width: 768px) {
@@ -407,6 +459,7 @@
   }
 }
 </style>
+
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
@@ -474,6 +527,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 
+
   // Fetch live search results
   searchInput.addEventListener("keyup", function() {
     const query = this.value.trim();
@@ -524,11 +578,13 @@ document.addEventListener("DOMContentLoaded", function() {
       });
   });
 
+
   // Filter products by max price when Apply clicked
   applyFilterBtn.addEventListener("click", filterProducts);
   
   // Clear all filters
   clearFiltersBtn.addEventListener("click", clearAllFilters);
+
 
   // Hide dropdown if click outside
   document.addEventListener("click", function(event) {
@@ -538,5 +594,6 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 });
 </script>
+
 
 {% endblock %}
