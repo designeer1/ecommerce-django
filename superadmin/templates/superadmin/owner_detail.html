@@ -1,0 +1,551 @@
+{% extends 'superadmin/base.html' %}
+{% block content %}
+
+<div class="dashboard-header d-flex justify-content-between align-items-center">
+  <div>
+    <h1 class="display-5 fw-bold text-gradient-premium">Owner Profile</h1>
+    <p class="lead text-muted">Detailed analytics for {{ owner.username }}'s store</p>
+  </div>
+  <a href="{% url 'superadmin_dashboard' %}" class="btn btn-outline-premium rounded-pill">
+    <i class="bi bi-arrow-left me-2"></i> Back to Dashboard
+  </a>
+</div>
+
+<!-- Calculate real inventory value -->
+{% with total_inventory_value=0 %}
+  {% for product in products %}
+    {% with total_inventory_value=total_inventory_value|add:product.price %}
+    {% endwith %}
+  {% endfor %}
+{% endwith %}
+
+<!-- Owner Profile Card -->
+<div class="row mb-5">
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-premium">
+      <div class="card-body text-center p-4">
+        <div class="position-relative d-inline-block mb-3">
+          <div class="premium-profile-frame">
+            <img src="{{ owner.profile_picture }}" 
+                 class="rounded-circle premium-profile-img" 
+                 width="140" 
+                 height="140"
+                 onerror="this.src='/media/profiles/default.png'">
+          </div>
+          <span class="position-absolute bottom-0 end-0 premium-online-indicator">
+            <i class="bi bi-check-circle-fill"></i>
+          </span>
+        </div>
+        
+        <h3 class="h4 mb-1 premium-text-gradient">{{ owner.username }}</h3>
+        <p class="text-muted mb-3">{{ owner_email }}</p>
+        
+        <div class="premium-badge-large mb-3">
+          <i class="bi bi-box-seam me-1"></i> {{ product_count }} Products
+        </div>
+
+        {% if django_user %}
+        <div class="premium-info-card">
+          <div class="d-flex align-items-center justify-content-center">
+            <i class="bi bi-patch-check-fill text-premium me-2"></i>
+            <small class="text-premium fw-semibold">Verified Store Owner</small>
+          </div>
+          <small class="text-muted">Member since {{ django_user.date_joined|date:"M d, Y" }}</small>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <!-- Statistics Cards with Real Data -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="card border-0 premium-card-primary">
+          <div class="card-body text-center p-4">
+            <div class="premium-icon-wrapper mb-3">
+              <i class="bi bi-box-seam premium-icon"></i>
+            </div>
+            <h2 class="fw-bold mb-1 premium-counter" data-target="{{ product_count }}">0</h2>
+            <p class="mb-0 opacity-75">Total Products</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-4">
+        <div class="card border-0 premium-card-info">
+          <div class="card-body text-center p-4">
+            <div class="premium-icon-wrapper mb-3">
+              <i class="bi bi-tags premium-icon"></i>
+            </div>
+            <h2 class="fw-bold mb-1 premium-counter" data-target="{{ categories_count }}">0</h2>
+            <p class="mb-0 opacity-75">Categories</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-4">
+        <div class="card border-0 premium-card-success">
+          <div class="card-body text-center p-4">
+            <div class="premium-icon-wrapper mb-3">
+              <i class="bi bi-currency-rupee premium-icon"></i>
+            </div>
+            <h2 class="fw-bold mb-1">
+              ₹<span class="premium-counter" data-target="{{ total_inventory_value|floatformat:0 }}">0</span>
+            </h2>
+            <p class="mb-0 opacity-75">Inventory Value</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Metrics -->
+    <div class="card border-0 shadow-premium">
+      <div class="card-body p-4">
+        <h5 class="card-title mb-4 premium-title">
+          <i class="bi bi-graph-up me-2"></i>Performance Metrics
+        </h5>
+        <div class="row">
+          <div class="col-md-6">
+            <div class="premium-metric-card">
+              <div class="premium-metric-icon">
+                <i class="bi bi-currency-exchange"></i>
+              </div>
+              <div>
+                <small class="text-muted d-block">Avg. Product Price</small>
+                <strong>₹{{ average_price|floatformat:2 }}</strong>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="premium-metric-card">
+              <div class="premium-metric-icon">
+                <i class="bi bi-star"></i>
+              </div>
+              <div>
+                <small class="text-muted d-block">Store Rating</small>
+                <strong>
+                  {{ store_rating|floatformat:1 }} 
+                  <i class="bi bi-star-fill text-warning"></i>
+                </strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Products Section -->
+<div class="card border-0 shadow-premium">
+  <div class="card-header premium-card-header">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h4 class="mb-1 premium-title">
+          <i class="bi bi-box-seam me-2"></i>Product Catalog
+        </h4>
+        <p class="text-muted mb-0">Total inventory value: ₹{{ total_inventory_value|floatformat:2 }}</p>
+      </div>
+      <span class="premium-badge-large">
+        {{ product_count }} Items
+      </span>
+    </div>
+  </div>
+  
+  <div class="card-body p-4">
+    {% if products %}
+    <div class="row g-4">
+      {% for product in products %}
+      <div class="col-md-6 col-lg-4">
+        <div class="card product-card h-100 border-0 shadow-premium-hover">
+          <div class="position-relative overflow-hidden">
+            <img src="{% if product.image %}{{ product.image }}{% elif product.image_path %}{{ product.image_path }}{% else %}/media/products/default.png{% endif %}" 
+                 class="card-img-top product-image" 
+                 alt="{{ product.name }}"
+                 onerror="this.src='/media/products/default.png'">
+            <span class="position-absolute top-0 end-0 m-2 premium-product-badge {% if product.type == 'subcategory' %}premium-badge-info{% else %}premium-badge-warning{% endif %}">
+              {{ product.type|title }}
+            </span>
+            <div class="premium-image-overlay">
+              <span class="premium-price-tag">₹{{ product.price }}</span>
+            </div>
+          </div>
+          
+          <div class="card-body">
+            <h6 class="card-title fw-bold text-dark mb-2 product-title">{{ product.name }}</h6>
+            
+            <div class="d-flex align-items-center mb-2 flex-wrap">
+              <span class="premium-category-badge me-2 mb-1">
+                <i class="bi bi-tag me-1"></i>{{ product.category }}
+              </span>
+              <span class="premium-category-badge mb-1">
+                <i class="bi bi-diagram-3 me-1"></i>{{ product.subcategory }}
+              </span>
+            </div>
+            
+            <p class="card-text text-muted small mb-3 line-clamp-2">
+              {{ product.description|default:"No description available" }}
+            </p>
+            
+            <div class="premium-product-footer">
+              <div class="premium-rating">
+                <i class="bi bi-star-fill text-warning"></i>
+                <i class="bi bi-star-fill text-warning"></i>
+                <i class="bi bi-star-fill text-warning"></i>
+                <i class="bi bi-star-fill text-warning"></i>
+                <i class="bi bi-star-half text-warning"></i>
+                <small class="text-muted ms-1">4.5</small>
+              </div>
+              <div class="premium-value-indicator">
+                <i class="bi bi-currency-rupee"></i>
+                <span>{{ product.price }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5 premium-empty-state">
+      <div class="mb-4">
+        <i class="bi bi-inbox display-1 text-muted opacity-25"></i>
+      </div>
+      <h4 class="text-muted mb-3">No Products Found</h4>
+      <p class="text-muted mb-4">This store hasn't added any products yet.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+/* Premium Color Scheme */
+:root {
+  --premium-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --premium-secondary: linear-gradient(135deg, #2a8ab8 0%, #42b983 100%);
+  --premium-success: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  --premium-warning: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+  --premium-info: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
+  --premium-dark: #2d3436;
+  --premium-light: #f8f9fa;
+  --premium-gold: #ffd700;
+  --premium-silver: #c0c0c0;
+}
+
+/* Premium Text Effects */
+.text-gradient-premium {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.premium-text-gradient {
+  background: linear-gradient(135deg, #2d3436 0%, #667eea 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Premium Cards */
+.premium-card-primary { background: var(--premium-primary); color: white; }
+.premium-card-info { background: var(--premium-info); color: white; }
+.premium-card-success { background: var(--premium-success); color: white; }
+
+.premium-card-primary,
+.premium-card-info,
+.premium-card-success {
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.premium-card-primary:hover,
+.premium-card-info:hover,
+.premium-card-success:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+}
+
+/* Premium Badges */
+.premium-badge-large {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 25px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.premium-product-badge {
+  padding: 6px 12px;
+  border-radius: 15px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+}
+
+.premium-badge-info { background: var(--premium-info); }
+.premium-badge-warning { background: var(--premium-warning); }
+
+/* Premium Icons */
+.premium-icon-wrapper {
+  width: 60px;
+  height: 60px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.premium-icon {
+  font-size: 1.5rem;
+}
+
+/* Premium Profile Frame */
+.premium-profile-frame {
+  position: relative;
+  display: inline-block;
+  border-radius: 50%;
+  padding: 4px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.premium-profile-img {
+  border: 3px solid white;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.premium-online-indicator {
+  background: #28a745;
+  color: white;
+  border-radius: 50%;
+  padding: 4px;
+  border: 2px solid white;
+}
+
+/* Premium Shadows */
+.shadow-premium {
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1) !important;
+  border-radius: 20px;
+}
+
+.shadow-premium-hover {
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+  transition: all 0.3s ease;
+  border-radius: 15px;
+}
+
+.shadow-premium-hover:hover {
+  box-shadow: 0 15px 35px rgba(0,0,0,0.15) !important;
+  transform: translateY(-5px);
+}
+
+/* Premium Card Header */
+.premium-card-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  border-radius: 20px 20px 0 0 !important;
+}
+
+/* Premium Title */
+.premium-title {
+  color: #2d3436;
+  font-weight: 600;
+}
+
+/* Premium Info Card */
+.premium-info-card {
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  padding: 15px;
+  border-radius: 15px;
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+/* Premium Metric Cards */
+.premium-metric-card {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+.premium-metric-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+}
+
+/* Premium Product Elements */
+.premium-image-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.7));
+  padding: 10px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.product-card:hover .premium-image-overlay {
+  opacity: 1;
+}
+
+.premium-price-tag {
+  background: var(--premium-primary);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.premium-category-badge {
+  background: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  color: #6c757d;
+}
+
+.premium-product-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
+}
+
+.premium-rating {
+  display: flex;
+  align-items: center;
+}
+
+.premium-value-indicator {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+/* Premium Empty State */
+.premium-empty-state {
+  opacity: 0.7;
+}
+
+/* Premium Button */
+.btn-outline-premium {
+  border: 2px solid #667eea;
+  color: #667eea;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-outline-premium:hover {
+  background: #667eea;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.product-card {
+  animation: fadeInUp 0.6s ease forwards;
+  opacity: 0;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.product-title {
+  transition: color 0.3s ease;
+}
+
+.product-card:hover .product-title {
+  color: #667eea !important;
+}
+</style>
+
+<script>
+// Counter animation for statistics
+document.addEventListener('DOMContentLoaded', function() {
+  // Counter animation
+  const counters = document.querySelectorAll('.premium-counter');
+  const speed = 200;
+  
+  counters.forEach(counter => {
+    const target = +counter.getAttribute('data-target');
+    const count = +counter.innerText;
+    const increment = target / speed;
+    
+    if (count < target) {
+      counter.innerText = Math.ceil(count + increment);
+      setTimeout(() => {
+        counter.innerText = target.toLocaleString();
+      }, 1);
+    } else {
+      counter.innerText = target.toLocaleString();
+    }
+  });
+  
+  // Staggered animation for product cards
+  const productCards = document.querySelectorAll('.product-card');
+  
+  productCards.forEach((card, index) => {
+    card.style.animationDelay = `${index * 0.1}s`;
+  });
+  
+  // Premium hover effects
+  const premiumCards = document.querySelectorAll('.premium-card-primary, .premium-card-info, .premium-card-success');
+  
+  premiumCards.forEach(card => {
+    card.addEventListener('mouseenter', function() {
+      this.style.transform = 'translateY(-5px)';
+    });
+    
+    card.addEventListener('mouseleave', function() {
+      this.style.transform = 'translateY(0)';
+    });
+  });
+  
+  // Parallax effect for profile image
+  const profileImg = document.querySelector('.premium-profile-img');
+  if (profileImg) {
+    document.addEventListener('mousemove', function(e) {
+      const moveX = (e.clientX - window.innerWidth / 2) / 25;
+      const moveY = (e.clientY - window.innerHeight / 2) / 25;
+      profileImg.style.transform = `translate(${moveX}px, ${moveY}px)`;
+    });
+  }
+});
+</script>
+
+{% endblock %}
